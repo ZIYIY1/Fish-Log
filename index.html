@@ -362,6 +362,22 @@ function ranked(kind, values){
 /* ---------- 界面状态 ---------- */
 const S = {tab:'today', tripId:null, sheet:null};
 
+/* 记住你停在哪：去看海图、切到别的应用再回来，哪怕系统把本应用重新加载了，也回到原来那一页，填到一半的表单也还在 */
+const UI_KEY = 'wharflog.ui';
+function saveUi(){ try{ localStorage.setItem(UI_KEY, JSON.stringify({at:Date.now(), tab:S.tab, tripId:S.tripId, sheet:S.sheet ? {type:S.sheet.type, isNew:S.sheet.isNew, data:S.sheet.data} : null})); }catch(e){} }
+function restoreUi(){
+  let u = null; try{ u = JSON.parse(localStorage.getItem(UI_KEY)); }catch(e){}
+  if(!u || Date.now() - u.at > 30*60000) return;
+  S.tab = ['today','history','spots','stats'].includes(u.tab) ? u.tab : 'today';
+  S.tripId = u.tripId && L.trips.some(t => t.id === u.tripId) ? u.tripId : null;
+  render();
+  const sh = u.sheet; if(!sh || !sh.data) return;
+  if(sh.type === 'catch' && !L.trips.some(t => t.id === sh.data.tripId)) return;
+  if(['spot','trip','catch'].includes(sh.type)) openSheet({type:sh.type, isNew:!!sh.isNew, data:sh.data});
+}
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') saveUi(); });
+window.addEventListener('pagehide', saveUi);
+
 function renderChrome(){
   $('#tabs').innerHTML = [['today','今天'],['history','记录'],['spots','钓点'],['stats','统计']]
     .map(([k,l]) => `<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${l}</button>`).join('');
@@ -540,7 +556,7 @@ function inputField(def, val){
 }
 function showMain(on){ $('#app').hidden = !on; $('.tabs').hidden = !on; }
 function openSheet(sheet){ S.sheet = sheet; showMain(false); renderSheet(); try{ window.scrollTo(0,0); }catch(e){} }
-function closeSheet(){ if(map){ map.remove(); map = null; } S.sheet = null; $('#sheet-root').innerHTML = ''; showMain(true); render(); }
+function closeSheet(){ if(map){ map.remove(); map = null; } S.sheet = null; $('#sheet-root').innerHTML = ''; showMain(true); render(); saveUi(); }
 function renderSheet(){
   const s = S.sheet, f = s.data; let title, body;
   if(s.picking) return renderPicker();
@@ -642,7 +658,7 @@ async function saveSheet(){
     closeSheetQuiet(); await writeDoc('catches', f); toast('已保存这条鱼');
   }
 }
-function closeSheetQuiet(){ S.sheet = null; $('#sheet-root').innerHTML = ''; showMain(true); try{ window.scrollTo(0,0); }catch(e){} }
+function closeSheetQuiet(){ S.sheet = null; saveUi(); $('#sheet-root').innerHTML = ''; showMain(true); try{ window.scrollTo(0,0); }catch(e){} }
 
 /* ---------- 导出 ---------- */
 async function exportCsv(){
@@ -726,6 +742,7 @@ function confirmTap(btn, label){
   setTimeout(() => { if(armed === btn){ armed = null; btn.textContent = btn.dataset.old; } }, 3000); return false;
 }
 document.addEventListener('click', async e => {
+  if(e.target.closest('a[target="_blank"]')){ saveUi(); return; }
   const chip = e.target.closest('[data-chip]');
   if(chip && S.sheet){
     const wrap = chip.closest('[data-field]'), k = wrap.dataset.field, on = chip.getAttribute('aria-pressed') === 'true';
@@ -738,7 +755,7 @@ document.addEventListener('click', async e => {
   }
   const b = e.target.closest('[data-act]'); if(!b) return;
   const act = b.dataset.act;
-  if(act === 'tab'){ S.tab = b.dataset.tab; S.tripId = null; render(); window.scrollTo(0,0); }
+  if(act === 'tab'){ S.tab = b.dataset.tab; S.tripId = null; render(); saveUi(); try{ window.scrollTo(0,0); }catch(e){} }
   else if(act === 'new-trip') newTripForm();
   else if(act === 'edit-trip'){ const t = L.trips.find(x => x.id === b.dataset.trip); openSheet({type:'trip', isNew:false, data:clean(t)}); }
   else if(act === 'end-trip'){ const t = L.trips.find(x => x.id === b.dataset.trip); if(!confirmTap(b, '再点一次确认收竿')) return;
@@ -777,7 +794,7 @@ document.addEventListener('input', e => {
 setInterval(() => { if(!S.sheet && S.tab === 'today' && activeTrip() && !armed) render(); }, 60000);
 
 render();
-loadData().then(render);
+loadData().then(() => { render(); restoreUi(); });
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>
