@@ -2,13 +2,6 @@
 
 码头沉底钓的渔获和环境记录。纯前端，数据只存在你自己的设备上。
 
-## 放到 GitHub Pages
-
-1. 在 GitHub 新建一个 **Public** 仓库，比如 `wharf-log`。
-2. 仓库页面点 **Add file → Upload files**，把这个文件夹里的 6 个文件全部拖进去（`index.html`、`sw.js`、`manifest.webmanifest` 和 3 个图标要在仓库根目录，不要套一层文件夹），点 **Commit changes**。
-3. **Settings → Pages**，Source 选 **Deploy from a branch**，Branch 选 `main`、目录 `/ (root)`，Save。
-4. 等一两分钟，页面上方会出现地址：`https://你的用户名.github.io/wharf-log/`
-
 ## 装到手机
 
 - iPhone：用 **Safari** 打开上面的地址 → 分享按钮 → **添加到主屏幕**。
