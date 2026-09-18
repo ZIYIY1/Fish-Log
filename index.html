@@ -62,6 +62,13 @@ h3{font-size:1rem;margin:28px 0 8px;font-weight:700;color:var(--harbour)}
 .btn.solid{background:var(--harbour);color:var(--paper)}
 .btn.quiet{border-color:var(--line);color:var(--ink);font-weight:500}
 .btn.danger{border-color:var(--danger);color:var(--danger)}
+a.btn{text-decoration:none}
+.mapwrap{position:relative;height:58vh;min-height:320px;margin:12px -16px 0;background:var(--harbour-soft)}
+#map{position:absolute;top:0;right:0;bottom:0;left:0}
+.cross{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:1100;pointer-events:none;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 2px #14262B,inset 0 0 0 2px #14262B}
+.cross::before,.cross::after{content:"";position:absolute;background:#E8A317;box-shadow:0 0 0 1px #14262B}
+.cross::before{left:50%;top:-10px;bottom:-10px;width:2px;margin-left:-1px}
+.cross::after{top:50%;left:-10px;right:-10px;height:2px;margin-top:-1px}
 .btn.small{min-height:40px;padding:0 12px;font-size:.9rem}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .stack{display:grid;gap:10px;margin-top:16px}
@@ -89,7 +96,7 @@ dl.env dt{color:var(--muted)} dl.env dd{margin:0;font-weight:600;text-align:righ
 /* bottom tab bar */
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);z-index:5}
-.tabs div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.tabs div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
 .tabs button{all:unset;box-sizing:border-box;text-align:center;padding:14px 0 12px;font-weight:600;color:var(--muted);cursor:pointer;border-top:3px solid transparent;margin-top:-1px}
 .tabs button[aria-current="page"]{color:var(--harbour);border-top-color:var(--float)}
 .tabs button:focus-visible{outline:3px solid var(--float);outline-offset:-3px}
@@ -253,7 +260,7 @@ function tideSvg(dots, nowP){
 
 /* ---------- 数据：只存在这台设备上（IndexedDB + localStorage 各一份） ---------- */
 const KEY = 'wharflog.v1';
-let L = {trips:[], catches:[], lastBackup:null, savedAt:0};
+let L = {trips:[], catches:[], spots:[], lastBackup:null, savedAt:0};
 const idb = {
   open(){ return new Promise((res,rej) => { if(typeof indexedDB === 'undefined') return rej(new Error('no idb'));
     const r = indexedDB.open('wharflog',1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
@@ -267,10 +274,76 @@ async function loadData(){
   try{ b = JSON.parse(await idb.get('state')); }catch(e){}
   const best = [a,b].filter(Boolean).sort((x,y) => (y.savedAt||0)-(x.savedAt||0))[0];
   if(best) L = Object.assign(L, best);
+  if(!Array.isArray(L.spots)) L.spots = [];
 }
 const clean = doc => { const o = {...doc}; delete o._dirty; return o; };
 function writeDoc(kind, doc){ doc = clean(doc); const i = L[kind].findIndex(x => x.id === doc.id); if(i >= 0) L[kind][i] = doc; else L[kind].push(doc); persist(); render(); return Promise.resolve(); }
 function deleteDoc(kind, id){ L[kind] = L[kind].filter(x => x.id !== id); persist(); render(); return Promise.resolve(); }
+
+/* ---------- 水深：钓点的海图水深 + 当时的潮高 = 鱼上钩时的实际水深 ---------- */
+const ZONES = [['桩脚边','pile'],['近','near'],['中','mid'],['远','far']];
+const BOTTOMS = ['沙','泥','礁石','海草','碎石贝壳','混合'];
+const spotOf = name => L.spots.find(s => s.name === name) || null;
+const r1 = v => Math.round(v*10)/10;
+function tideHeightAt(trip, hm){
+  const p = phaseAt(trip, hm), hi = numOrNull(trip && trip.highTideM), lo = numOrNull(trip && trip.lowTideM);
+  if(p == null || hi == null || lo == null) return null;
+  return lo + (hi-lo)*(1+Math.cos(2*Math.PI*p))/2;
+}
+function chartDepth(spotName, cast){ const s = spotOf(spotName), z = ZONES.find(z => z[0] === cast); return s && z ? numOrNull(s[z[1]]) : null; }
+function depthAt(trip, hm, cast){ const c = chartDepth(trip && trip.spot, cast), h = tideHeightAt(trip, hm); return c == null || h == null ? null : r1(c+h); }
+function recomputeDepths(spotName){   // 钓点水深改了以后，把这个钓点所有自动算的水深重算一遍
+  L.trips.filter(t => t.spot === spotName).forEach(t => L.catches.filter(c => c.tripId === t.id && !c.depthManual).forEach(c => { c.depthM = depthAt(t, c.time, c.cast); }));
+}
+
+/* ---------- 位置：GPS、地图选点、跳到海图 ---------- */
+const hasLoc = s => s && numOrNull(s.lat) != null && numOrNull(s.lng) != null;
+const chartUrl = s => `https://fishing-app.gpsnauticalcharts.com/i-boating-fishing-web-app/fishing-marine-charts-navigation.html#16.5/${s.lat}/${s.lng}/0`;
+const r6 = v => Math.round(v*1e6)/1e6;
+function locate(){ return new Promise((res,rej) => { if(!navigator.geolocation) return rej(new Error('none'));
+  navigator.geolocation.getCurrentPosition(p => res(p.coords), rej, {enableHighAccuracy:true, timeout:15000, maximumAge:10000}); }); }
+function locField(f){
+  return `<div class="field"><div class="flabel">位置<small class="num">${hasLoc(f) ? f.lat.toFixed(5) + ', ' + f.lng.toFixed(5) : '还没定位'}</small></div>
+    <div class="row"><button type="button" class="btn small" data-act="spot-locate">用当前位置</button><button type="button" class="btn small" data-act="spot-pick">在地图上选点</button>
+    ${hasLoc(f) ? `<a class="btn small solid" href="${chartUrl(f)}" target="_blank" rel="noopener">看海图水深</a>` : ''}</div>
+    <p class="hint">人在码头上就用当前位置；在家里就去地图上选。定了位置以后，“看海图水深”会直接跳到这个码头的海图。</p></div>`;
+}
+let leafletLoading = null, map = null, mapLayers = null;
+function loadLeaflet(){   // 地图库只在选点时才联网加载。它挂在 window.L 上，和本页的数据变量 L 不是一回事
+  if(window.L && window.L.map) return Promise.resolve();
+  if(leafletLoading) return leafletLoading;
+  const tryFrom = base => new Promise((res,rej) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'leaflet.css'; document.head.appendChild(css);
+    const js = document.createElement('script'); js.src = base + 'leaflet.js'; js.onload = () => res(); js.onerror = () => { css.remove(); js.remove(); rej(new Error('load')); }; document.head.appendChild(js); });
+  leafletLoading = tryFrom('https://unpkg.com/leaflet@1.9.4/dist/').catch(() => tryFrom('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/')).catch(e => { leafletLoading = null; throw e; });
+  return leafletLoading;
+}
+function renderPicker(){
+  $('#sheet-root').innerHTML = `<div class="sheet"><div class="sheet-in">
+      <div class="sheet-head"><h2>在地图上选点</h2><button class="btn quiet small" data-act="pick-cancel">返回</button></div>
+      <p class="hint">拖动地图，让十字对准你站着钓鱼的位置。放大一些更准。</p>
+      <div class="chips" style="margin-top:10px"><button type="button" class="chip" data-act="pick-layer" data-layer="sat" aria-pressed="true">卫星图</button><button type="button" class="chip" data-act="pick-layer" data-layer="map" aria-pressed="false">街道图</button></div>
+      <div class="mapwrap"><div id="map"></div><div class="cross"></div></div>
+      <p class="hint num" id="pick-coords"></p><div class="err" id="form-err"></div></div>
+    <div class="sheet-foot"><div><button class="btn" data-act="pick-locate">我的位置</button><button class="btn primary" data-act="pick-ok">用这个位置</button></div></div></div>`;
+  loadLeaflet().then(initMap).catch(() => { const e = $('#form-err'); if(e) e.textContent = '地图要联网才能加载。现在没信号的话，先返回用“用当前位置”。'; });
+}
+function initMap(){
+  if(!S.sheet || !S.sheet.picking || !$('#map')) return;
+  const Lf = window.L, f = S.sheet.data, others = L.spots.filter(hasLoc);
+  const start = hasLoc(f) ? [[f.lat, f.lng], 18] : others.length ? [[others[0].lat, others[0].lng], 14] : [[-33.8568, 151.2153], 13];
+  map = Lf.map('map', {zoomControl:true}).setView(start[0], start[1]);
+  mapLayers = {
+    sat: Lf.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:19, maxZoom:21, attribution:'Esri, Maxar, Earthstar Geographics'}),
+    map: Lf.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxNativeZoom:19, maxZoom:21, attribution:'&copy; OpenStreetMap contributors'})
+  };
+  mapLayers.sat.addTo(map);
+  others.filter(s => s.name !== f.name).forEach(s => Lf.circleMarker([s.lat, s.lng], {radius:6, color:'#14262B', weight:2, fillColor:'#E8A317', fillOpacity:1}).addTo(map).bindTooltip(s.name));
+  const show = () => { const c = map.getCenter(), el = $('#pick-coords'); if(el) el.textContent = c.lat.toFixed(5) + ', ' + c.lng.toFixed(5); };
+  map.on('move', show); show();
+  if(!hasLoc(f) && !others.length) locate().then(c => { if(map) map.setView([c.latitude, c.longitude], 17); }).catch(() => {});
+}
+function closePicker(){ if(map){ map.remove(); map = null; } S.sheet.picking = false; renderSheet(); }
 
 /* ---------- 查询 ---------- */
 const tripsSorted = () => [...L.trips].sort((a,b) => (b.date+(b.startTime||'')).localeCompare(a.date+(a.startTime||'')) || (b.createdAt||0)-(a.createdAt||0));
@@ -290,12 +363,12 @@ function ranked(kind, values){
 const S = {tab:'today', tripId:null, sheet:null};
 
 function renderChrome(){
-  $('#tabs').innerHTML = [['today','今天'],['history','记录'],['stats','统计']]
+  $('#tabs').innerHTML = [['today','今天'],['history','记录'],['spots','钓点'],['stats','统计']]
     .map(([k,l]) => `<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${l}</button>`).join('');
   const el = $('#sync'); if(el) el.textContent = L.lastBackup ? '上次备份 ' + L.lastBackup : (L.trips.length ? '还没备份过' : '');
 }
 function render(){
-  const body = S.tab === 'today' ? viewToday() : S.tab === 'history' ? (S.tripId ? viewTrip(S.tripId) : viewHistory()) : viewStats();
+  const body = S.tab === 'today' ? viewToday() : S.tab === 'history' ? (S.tripId ? viewTrip(S.tripId) : viewHistory()) : S.tab === 'spots' ? viewSpots() : viewStats();
   $('#app').innerHTML = `<header class="mast"><h1>码头钓记</h1><span class="sync" id="sync"></span></header>${body}`;
   renderChrome();
 }
@@ -326,7 +399,7 @@ function tripBody(t, live){
        <p class="sub">${esc(t.date)}　<span class="num">${esc(t.startTime||'')}${t.endTime?' – '+esc(t.endTime):''}</span>${t.endTime?'':'　还没收竿'}</p>`;
   return `${head}
     <div class="tide">${tideSvg(dots, nowP)}
-      <p class="tide-note">${hasTide ? `${esc(t.moonLabel||'')}，${esc(t.tideType||'')}${nowP!=null?`。现在是${tideLabel(nowP)}`:''}` : '还没填满潮或低潮时间。填上以后，每条鱼会自动算出潮段。'}</p></div>
+      <p class="tide-note">${hasTide ? `${esc(t.moonLabel||'')}，${esc(t.tideType||'')}${nowP!=null?`。现在是${tideLabel(nowP)}`:''}` : '还没填满潮或低潮时间。填上以后，每条鱼会自动算出潮段。'}</p>${depthNote(t, live)}</div>
     ${live ? `<div class="stack"><button class="btn primary" data-act="new-catch" data-trip="${t.id}">记一条鱼</button></div>` : ''}
     <h3>渔获　<span class="num">${cs.length}</span></h3>
     ${cs.length ? `<ul class="log">${cs.map(catchRow).join('')}</ul>` : `<p class="empty">${t.endTime ? '这次空军。空军也是数据，环境记全了一样有用。' : '还没上鱼。'}</p>`}
@@ -342,12 +415,23 @@ function tripBody(t, live){
       ${!live ? `<div class="row"><button class="btn danger small" data-act="del-trip" data-trip="${t.id}">删除这次出钓</button></div>` : ''}
     </div>`;
 }
+function depthNote(t, live){ const sp = spotOf(t.spot); return depthNoteBody(t, live) + (hasLoc(sp) ? `<p class="tide-note"><a href="${chartUrl(sp)}" target="_blank" rel="noopener" style="color:var(--harbour);font-weight:600">看这个钓点的海图水深</a></p>` : ''); }
+function depthNoteBody(t, live){
+  const sp = spotOf(t.spot), has = sp && ZONES.some(z => numOrNull(sp[z[1]]) != null);
+  if(!has) return `<p class="tide-note"><button class="btn quiet small" data-act="edit-spot" data-spot="${esc(t.spot)}">填这个钓点的水深</button></p>`;
+  const h = live ? tideHeightAt(t, nowHM()) : null;
+  if(numOrNull(t.highTideM) == null || numOrNull(t.lowTideM) == null) return `<p class="tide-note">这个钓点有水深了，再补上满潮和低潮的潮高，就能算每条鱼上钩时的实际水深。</p>`;
+  if(h == null) return '';
+  const parts = ZONES.filter(z => numOrNull(sp[z[1]]) != null).map(z => `${z[0]} <span class="num">${r1(numOrNull(sp[z[1]])+h).toFixed(1)}</span>`);
+  return `<p class="tide-note">现在潮高 <span class="num">${h.toFixed(1)}</span> m，水深：${parts.join('，')} m</p>`;
+}
 function envList(t){
-  const rows = [['满潮', t.highTide],['低潮', t.lowTide],['月相', t.moonLabel],['潮型', t.tideType], ...ENV.map(f => [f.label, t[f.k] != null && t[f.k] !== '' ? t[f.k] + (f.unit||'') : null])];
+  const tm = (hm, m) => hm ? hm + (m != null && m !== '' ? `，${m} m` : '') : null;
+  const rows = [['满潮', tm(t.highTide, t.highTideM)],['低潮', tm(t.lowTide, t.lowTideM)],['月相', t.moonLabel],['潮型', t.tideType], ...ENV.map(f => [f.label, t[f.k] != null && t[f.k] !== '' ? t[f.k] + (f.unit||'') : null])];
   return `<dl class="env">${rows.map(([k,v]) => `<div><dt>${k}</dt><dd>${v ? esc(v) : '—'}</dd></div>`).join('')}</dl>`;
 }
 function catchRow(c){
-  const meta = [shortName(c.bait), c.tideLabel, c.outcome, c.weightG ? c.weightG+' g' : ''].filter(Boolean).join('，');
+  const meta = [shortName(c.bait), c.tideLabel, c.depthM != null ? `水深 ${c.depthM} m` : (c.cast||''), c.outcome, c.weightG ? c.weightG+' g' : ''].filter(Boolean).join('，');
   return `<li><button data-act="edit-catch" data-id="${c.id}"><span class="t num">${esc(c.time||'')}</span>
     <span class="main">${esc(shortName(c.species))}<span class="meta">${esc(meta)}</span></span>
     <span class="len num">${c.lengthCm != null ? c.lengthCm + '<small> cm</small>' : ''}</span></button></li>`;
@@ -371,6 +455,19 @@ function viewHistory(){
       <button class="btn" data-act="import">导入备份或 CSV</button></div></div>`;
 }
 function viewTrip(id){ const t = L.trips.find(x => x.id === id); if(!t){ S.tripId = null; return viewHistory(); } return tripBody(t, false); }
+
+/* ---------- 钓点 ---------- */
+function viewSpots(){
+  const names = [...new Set([...L.spots.map(s => s.name), ...tripsSorted().map(t => t.spot)])].filter(Boolean);
+  const row = n => { const s = spotOf(n) || {}, ds = ZONES.map(z => numOrNull(s[z[1]])).filter(v => v != null), nt = L.trips.filter(t => t.spot === n).length;
+    return `<li><button data-act="edit-spot" data-spot="${esc(n)}"><span class="main" style="grid-column:1 / span 2">${esc(n)}<span class="meta">${esc([nt ? `去过 ${nt} 次` : '', s.bottom ? '底质 ' + s.bottom : '', hasLoc(s) ? '已定位' : ''].filter(Boolean).join('，') || '还没去过')}</span></span>
+      <span class="len num">${ds.length ? (Math.min(...ds) === Math.max(...ds) ? ds[0] : Math.min(...ds) + '–' + Math.max(...ds)) + '<small> m</small>' : '<small>没填水深</small>'}</span></button></li>`; };
+  return `<h2>钓点</h2><p class="sub">每个码头填一次水深和底质，以后每条鱼都会按当时的潮高自动算出实际水深。</p>
+    ${names.length ? `<ul class="log" style="margin-top:14px">${names.map(row).join('')}</ul>` : '<p class="empty">还没有钓点。</p>'}
+    <div class="stack"><div class="row"><button class="btn" data-act="new-spot">新增钓点</button></div></div>
+    <h3>水深从哪来</h3>
+    <p class="hint">一是看海图：Navionics 之类的海图应用里点到码头旁边，读出来的数字就是海图水深（最低潮时的水深）。二是自己量：铅坠放到底，数线上的记号或者收线圈数。自己量的是“此刻”的水深，编辑钓点时选“现在实测”，会按当时潮高自动换算回海图水深。</p>`;
+}
 
 /* ---------- 统计 ---------- */
 function barList(rows, fmt){
@@ -403,6 +500,13 @@ function viewStats(){
   const byBait = Object.entries(group(cs, c => c.bait)).map(([k,a]) => ({label:shortName(k), v:a.length})).sort((a,b) => b.v-a.v);
   const perTrip = key => Object.entries(group(trips, key)).map(([k,ts]) => { const n = cs.filter(c => ts.some(t => t.id === c.tripId)).length;
     return {label:k, v:n/ts.length, trips:ts.length, fish:n}; }).sort((a,b) => b.v-a.v);
+  const byCast = ZONES.map(z => ({label:z[0], v:cs.filter(c => c.cast === z[0]).length})).filter(r => r.v);
+  const dvals = cs.map(c => numOrNull(c.depthM)).filter(v => v != null); let depthChart = '';
+  if(dvals.length){ const lo = Math.floor(Math.min(...dvals)), hi = Math.floor(Math.max(...dvals)), bins = []; for(let d = lo; d <= hi; d++) bins.push(dvals.filter(v => Math.floor(v) === d).length);
+    const mx = Math.max(...bins) || 1, n = bins.length;
+    depthChart = `<h3>哪个水深出鱼</h3><div class="cols" style="grid-template-columns:repeat(${n},1fr)">${bins.map(b => `<i class="${b?'':'zero'}" style="height:${Math.max(b/mx*100,2)}%"></i>`).join('')}</div>
+      <div class="collabs" style="grid-template-columns:repeat(${n},1fr)">${bins.map((b,i) => `<span><b class="num">${b}</b>${lo+i}–${lo+i+1} m</span>`).join('')}</div>
+      <p class="hint">这是鱼上钩那一刻的实际水深（海图水深加当时潮高）。这里只是条数，没法按“在各个水深钓了多久”折算，所以你常抛的位置天然会多一些。</p>`; }
   const tripFmt = r => `${r.v.toFixed(1)} 条/次（${r.trips} 次）`;
   const envBlocks = [['潮型', t => t.tideType], ...ENV.filter(f => f.opts).map(f => [f.label, t => t[f.k]])]
     .map(([label,key]) => { const rows = perTrip(key); return rows.length > 1 ? `<h3>${label}与每次渔获</h3>${barList(rows, tripFmt)}` : ''; }).join('');
@@ -415,6 +519,7 @@ function viewStats(){
     <h3>几点钟出鱼</h3>
     <div class="cols" style="grid-template-columns:repeat(24,1fr)">${hours.map(h => `<i class="${h?'':'zero'}" style="height:${Math.max(h/maxH*100,2)}%"></i>`).join('')}</div>
     <div class="collabs num" style="grid-template-columns:repeat(8,1fr)">${[0,3,6,9,12,15,18,21].map(h => `<span style="text-align:left">${h}</span>`).join('')}</div>
+    ${depthChart}${byCast.length > 1 ? `<h3>抛投位置</h3>${barList(byCast, r => r.v + ' 条')}` : ''}
     ${bySpecies.length ? `<h3>鱼种</h3>${barList(bySpecies, r => `${r.v} 条${r.avg!=null?`，均 ${r.avg.toFixed(0)} 最大 ${r.max} cm`:''}`)}` : ''}
     ${byBait.length ? `<h3>饵</h3>${barList(byBait, r => r.v + ' 条')}` : ''}
     <h3>钓点与每次渔获</h3>${barList(perTrip(t => t.spot), tripFmt)}
@@ -435,15 +540,27 @@ function inputField(def, val){
 }
 function showMain(on){ $('#app').hidden = !on; $('.tabs').hidden = !on; }
 function openSheet(sheet){ S.sheet = sheet; showMain(false); renderSheet(); try{ window.scrollTo(0,0); }catch(e){} }
-function closeSheet(){ S.sheet = null; $('#sheet-root').innerHTML = ''; showMain(true); render(); }
+function closeSheet(){ if(map){ map.remove(); map = null; } S.sheet = null; $('#sheet-root').innerHTML = ''; showMain(true); render(); }
 function renderSheet(){
   const s = S.sheet, f = s.data; let title, body;
-  if(s.type === 'trip'){
+  if(s.picking) return renderPicker();
+  if(s.type === 'spot'){
+    title = s.isNew ? '新增钓点' : f.name;
+    body = (s.isNew ? inputField({k:'name',label:'钓点名字'}, f.name) : '')
+      + locField(f)
+      + chipField({k:'basis',label:'下面填的水深是',opts:['海图水深','现在实测']}, f.basis)
+      + `<p class="hint">海图水深是最低潮时的水深，从海图上读。“现在实测”是你此刻用铅坠量出来的，保存时会减掉当前潮高换算成海图水深（需要正在这个钓点出钓，并且填了潮高）。</p>
+         <div class="pair">${inputField({k:'pile',label:'桩脚边',unit:'m',num:true}, f.pile)}${inputField({k:'near',label:'近抛',unit:'m',num:true}, f.near)}</div>
+         <div class="pair">${inputField({k:'mid',label:'中抛',unit:'m',num:true}, f.mid)}${inputField({k:'far',label:'远抛',unit:'m',num:true}, f.far)}</div>`
+      + chipField({k:'bottom',label:'底质',opts:BOTTOMS}, f.bottom)
+      + `<div class="field"><div class="flabel">备注<small>哪边挂底、哪里有坑、哪个方向有航道</small></div><textarea class="txt" data-input="note">${esc(f.note||'')}</textarea></div>`;
+  } else if(s.type === 'trip'){
     title = s.isNew ? '开始出钓' : '这次出钓';
-    body = chipField({k:'spot',label:'钓点',custom:'码头名字'}, f.spot, ranked('spot', L.trips.map(t => t.spot)))
+    body = chipField({k:'spot',label:'钓点',custom:'码头名字'}, f.spot, ranked('spot', [...L.trips.map(t => t.spot), ...L.spots.map(s => s.name)]))
       + `<div class="pair">${inputField({k:'date',label:'日期',type:'date'}, f.date)}${inputField({k:'startTime',label:'开始',type:'time'}, f.startTime)}</div>
          <div class="pair">${inputField({k:'highTide',label:'满潮时间',type:'time'}, f.highTide)}${inputField({k:'lowTide',label:'低潮时间',type:'time'}, f.lowTide)}</div>
-         <p class="hint">查一下当天潮汐表，填离你下竿时间最近的那一次满潮和低潮。只填一个也行。</p>
+         <div class="pair">${inputField({k:'highTideM',label:'满潮潮高',unit:'m',num:true}, f.highTideM)}${inputField({k:'lowTideM',label:'低潮潮高',unit:'m',num:true}, f.lowTideM)}</div>
+         <p class="hint">查一下当天潮汐表，填离你下竿时间最近的那一次满潮和低潮。时间只填一个也行；两个潮高都填了，才能算每条鱼的实际水深。</p>
          ${!s.isNew ? inputField({k:'endTime',label:'收竿',type:'time'}, f.endTime) : ''}
          <p class="section-note">环境<small>现场能看出来的先点上，气压水温这些可以回家再补。</small></p>`
       + ENV.map(d => d.opts ? chipField(d, f[d.k]) : inputField(d, f[d.k])).join('')
@@ -454,11 +571,12 @@ function renderSheet(){
     body = chipField({k:'species',label:'鱼种',custom:'其他鱼种'}, f.species, ranked('species', L.catches.map(c => c.species)))
       + `<div class="pair">${inputField({k:'lengthCm',label:'长度',unit:'cm',num:true,big:true}, f.lengthCm)}${inputField({k:'time',label:'时间',type:'time',big:true}, f.time)}</div>`
       + chipField({k:'bait',label:'饵',custom:'其他饵'}, f.bait, ranked('bait', L.catches.map(c => c.bait)))
+      + chipField({k:'cast',label:'抛投',hint:'决定按哪个位置的水深来算',opts:ZONES.map(z => z[0])}, f.cast)
       + chipField({k:'outcome',label:'结果',opts:['留','放','跑了']}, f.outcome)
       + `<details class="more" ${(!s.isNew)?'open':''}><summary>更多：潮段、钓组、重量、备注</summary>`
       + chipField({k:'tideLabel',label:'潮段',hint: trip && (trip.highTide||trip.lowTide) ? '按满潮时间自动算的，不对可以改' : '这次出钓没填潮汐时间，可以手动点',opts:TIDE_BINS}, f.tideLabel)
       + chipField({k:'rig',label:'钓组',custom:'其他钓组'}, f.rig, ranked('rig', L.catches.map(c => c.rig)))
-      + chipField({k:'cast',label:'抛投',opts:['桩脚边','近','中','远']}, f.cast)
+      + inputField({k:'depthM',label:'水深',unit:'m',num:true,hint:'按钓点水深和当时潮高自动算的，可以改'}, f.depthM)
       + `<div class="pair">${inputField({k:'weightG',label:'重量',unit:'g',num:true}, f.weightG)}${inputField({k:'hook',label:'钩号'}, f.hook)}</div>
          <div class="field"><div class="flabel">备注</div><textarea class="txt" data-input="note">${esc(f.note||'')}</textarea></div></details>`;
   }
@@ -466,7 +584,12 @@ function renderSheet(){
       <div class="sheet-head"><h2>${title}</h2><button class="btn quiet small" data-act="close-sheet">取消</button></div>
       ${body}<div class="err" id="form-err"></div></div>
     <div class="sheet-foot"><div>${!s.isNew && s.type==='catch' ? `<button class="btn danger" data-act="del-catch" data-id="${f.id}">删除</button>` : ''}
-      <button class="btn primary" data-act="save-sheet">${s.type==='trip' ? (s.isNew?'开始出钓':'保存这次出钓') : '保存这条鱼'}</button></div></div></div>`;
+      <button class="btn primary" data-act="save-sheet">${s.type==='spot' ? '保存钓点' : s.type==='trip' ? (s.isNew?'开始出钓':'保存这次出钓') : '保存这条鱼'}</button></div></div></div>`;
+}
+function refreshAutoDepth(){
+  const s = S.sheet; if(!s || s.type !== 'catch' || s.data.depthManual) return;
+  const trip = L.trips.find(t => t.id === s.data.tripId); s.data.depthM = depthAt(trip, s.data.time, s.data.cast);
+  const el = document.querySelector('[data-input="depthM"]'); if(el) el.value = s.data.depthM ?? '';
 }
 function refreshAutoTide(){
   const s = S.sheet; if(!s || s.type !== 'catch' || s.data.tideManual) return;
@@ -484,22 +607,37 @@ function newCatchForm(tripId){
   const trip = L.trips.find(t => t.id === tripId), time = (!trip.endTime) ? nowHM() : (trip.startTime || nowHM());
   const p = phaseAt(trip, time);
   openSheet({type:'catch', isNew:true, data:{id:newId('c_'), tripId, time, species:lastHere ? lastHere.species : null, bait:lastAny.bait||null, rig:lastAny.rig||null,
-    cast:lastAny.cast||null, hook:lastAny.hook||'', outcome:lastAny.outcome === '跑了' ? '留' : (lastAny.outcome||'留'), tideP:p, tideLabel:tideLabel(p)||null, tideManual:false, createdAt:Date.now()}});
+    cast:lastAny.cast||null, hook:lastAny.hook||'', outcome:lastAny.outcome === '跑了' ? '留' : (lastAny.outcome||'留'), tideP:p, tideLabel:tideLabel(p)||null, tideManual:false, depthM:depthAt(trip, time, lastAny.cast||null), depthManual:false, createdAt:Date.now()}});
 }
 async function saveSheet(){
   const s = S.sheet, f = {...s.data}, err = m => { $('#form-err').textContent = m; };
+  if(s.type === 'spot'){
+    f.name = (f.name||'').trim(); if(!f.name) return err('先给钓点起个名字。');
+    if(s.isNew && spotOf(f.name)) return err('已经有这个钓点了，回列表里点它来改。');
+    let h = 0;
+    if(f.basis === '现在实测'){ const t = activeTrip(); h = t && t.spot === f.name ? tideHeightAt(t, nowHM()) : null;
+      if(h == null) return err('实测换算需要：正在这个钓点出钓，并且这次出钓填了满潮、低潮的时间和潮高。'); }
+    ZONES.forEach(z => { const v = numOrNull(f[z[1]]); f[z[1]] = v == null ? null : r1(v - h); });
+    delete f.basis; const i = L.spots.findIndex(x => x.name === f.name); if(i >= 0) L.spots[i] = f; else L.spots.push(f);
+    recomputeDepths(f.name); persist(); closeSheetQuiet(); render(); toast(h ? `已保存，按当前潮高 ${h.toFixed(1)} m 换算成了海图水深` : '已保存钓点');
+    return;
+  }
   if(s.type === 'trip'){
     if(!f.spot || !f.spot.trim()) return err('先选一个钓点，或者在下面输入码头名字。');
     if(!f.date) return err('日期不能空。');
     ENV.filter(d => d.num).forEach(d => f[d.k] = numOrNull(f[d.k]));
+    f.highTideM = numOrNull(f.highTideM); f.lowTideM = numOrNull(f.lowTideM);
     Object.assign(f, moonInfo(f.date)); f.spot = f.spot.trim();
     closeSheetQuiet(); await writeDoc('trips', f);
-    for(const c of L.catches.filter(c => c.tripId === f.id && !c.tideManual)){   // 潮汐时间改了，重算这次的潮段
-      const p = phaseAt(f, c.time); if(p !== c.tideP){ await writeDoc('catches', {...c, tideP:p, tideLabel:tideLabel(p)||null}); } }
+    for(const c of L.catches.filter(c => c.tripId === f.id)){   // 潮汐改了，重算这次每条鱼的潮段和水深
+      const p = c.tideManual ? c.tideP : phaseAt(f, c.time), dm = c.depthManual ? c.depthM : depthAt(f, c.time, c.cast);
+      if(p !== c.tideP || dm !== c.depthM){ await writeDoc('catches', {...c, tideP:p, tideLabel:c.tideManual ? c.tideLabel : (tideLabel(p)||null), depthM:dm}); } }
     toast(s.isNew ? '已开始，上鱼了点“记一条鱼”' : '已保存');
   } else {
     if(!f.species) return err('先选鱼种。认不出来可以在下面输入“不认识”。');
     f.lengthCm = numOrNull(f.lengthCm); f.weightG = numOrNull(f.weightG);
+    { const trip = L.trips.find(t => t.id === f.tripId), th = tideHeightAt(trip, f.time); f.tideM = th == null ? null : Math.round(th*100)/100;
+      f.depthM = f.depthManual ? numOrNull(f.depthM) : depthAt(trip, f.time, f.cast); if(f.depthM == null) f.depthManual = false; }
     if(f.tideManual && f.tideLabel) f.tideP = BIN_CENTER[f.tideLabel]; if(!f.tideLabel){ f.tideP = null; }
     closeSheetQuiet(); await writeDoc('catches', f); toast('已保存这条鱼');
   }
@@ -508,13 +646,13 @@ function closeSheetQuiet(){ S.sheet = null; $('#sheet-root').innerHTML = ''; sho
 
 /* ---------- 导出 ---------- */
 async function exportCsv(){
-  const cols = ['日期','钓点','开始','收竿','满潮','低潮','潮型','月相', ...ENV.map(f => f.label + (f.unit?`(${f.unit})`:'')), '出钓备注','渔获时间','鱼种','长度cm','重量g','饵','钓组','钩号','抛投','潮段','潮位相位(0=满潮)','结果','渔获备注'];
+  const cols = ['日期','钓点','开始','收竿','满潮','低潮','满潮潮高m','低潮潮高m','潮型','月相', ...ENV.map(f => f.label + (f.unit?`(${f.unit})`:'')), '出钓备注','渔获时间','鱼种','长度cm','重量g','饵','钓组','钩号','抛投','潮段','潮位相位(0=满潮)','结果','渔获备注','水深m','潮高m','钓点纬度','钓点经度'];
   const q = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
   const lines = [cols.join(',')];
   [...tripsSorted()].reverse().forEach(t => {
-    const head = [t.date,t.spot,t.startTime,t.endTime,t.highTide,t.lowTide,t.tideType,t.moonLabel, ...ENV.map(f => t[f.k]), t.note];
-    const cs = catchesOf(t.id);
-    (cs.length ? cs : [null]).forEach(c => lines.push([...head, ...(c ? [c.time,c.species,c.lengthCm,c.weightG,c.bait,c.rig,c.hook,c.cast,c.tideLabel,c.tideP != null ? c.tideP.toFixed(3) : '',c.outcome,c.note] : Array(12).fill(''))].map(q).join(',')));
+    const head = [t.date,t.spot,t.startTime,t.endTime,t.highTide,t.lowTide,t.highTideM,t.lowTideM,t.tideType,t.moonLabel, ...ENV.map(f => t[f.k]), t.note];
+    const cs = catchesOf(t.id), sp = spotOf(t.spot), loc = hasLoc(sp) ? [sp.lat, sp.lng] : ['',''];
+    (cs.length ? cs : [null]).forEach(c => lines.push([...head, ...(c ? [c.time,c.species,c.lengthCm,c.weightG,c.bait,c.rig,c.hook,c.cast,c.tideLabel,c.tideP != null ? c.tideP.toFixed(3) : '',c.outcome,c.note,c.depthM,c.tideM] : Array(14).fill('')), ...loc].map(q).join(',')));
   });
   if(await saveFile(`fishing-log-${todayStr()}.csv`, '\ufeff' + lines.join('\n'), 'text/csv')) toast('已导出');
 }
@@ -530,7 +668,7 @@ async function saveFile(name, text, mime){
   setTimeout(() => URL.revokeObjectURL(a.href), 5000); return true;
 }
 async function backupJson(){
-  const data = JSON.stringify({app:'wharflog', version:1, exportedAt:new Date().toISOString(), trips:L.trips, catches:L.catches}, null, 1);
+  const data = JSON.stringify({app:'wharflog', version:2, exportedAt:new Date().toISOString(), trips:L.trips, catches:L.catches, spots:L.spots}, null, 1);
   if(await saveFile(`wharflog-backup-${todayStr()}.json`, data, 'application/json')){ L.lastBackup = todayStr(); persist(); renderChrome(); toast('已备份'); }
 }
 function parseCsv(text){
@@ -552,12 +690,14 @@ function importCsv(text){
   rows.slice(1).forEach((r,ri) => {
     const key = [get(r,'日期'), get(r,'钓点'), get(r,'开始')||''].join('|'); if(exists.has(key)) return;
     let t = byKey.get(key);
-    if(!t){ t = {id:newId('t_') + nt, date:get(r,'日期'), spot:get(r,'钓点'), startTime:get(r,'开始'), endTime:get(r,'收竿'), highTide:get(r,'满潮'), lowTide:get(r,'低潮'), note:get(r,'出钓备注'), createdAt:Date.now()+ri};
+    if(!t){ t = {id:newId('t_') + nt, date:get(r,'日期'), spot:get(r,'钓点'), startTime:get(r,'开始'), endTime:get(r,'收竿'), highTide:get(r,'满潮'), lowTide:get(r,'低潮'), highTideM:numOrNull(get(r,'满潮潮高m')), lowTideM:numOrNull(get(r,'低潮潮高m')), note:get(r,'出钓备注'), createdAt:Date.now()+ri};
       ENV.forEach(f => { const v = get(r, f.label + (f.unit ? `(${f.unit})` : '')); t[f.k] = f.num ? numOrNull(v) : v; });
       Object.assign(t, moonInfo(t.date)); byKey.set(key, t); L.trips.push(t); nt++; }
+    { const la = numOrNull(get(r,'钓点纬度')), lo = numOrNull(get(r,'钓点经度')); if(la != null && lo != null && !spotOf(t.spot)) L.spots.push({name:t.spot, lat:la, lng:lo}); }
     const sp = get(r,'鱼种'); if(!sp) return;
     const c = {id:newId('c_') + nc, tripId:t.id, time:get(r,'渔获时间'), species:sp, lengthCm:numOrNull(get(r,'长度cm')), weightG:numOrNull(get(r,'重量g')), bait:get(r,'饵'), rig:get(r,'钓组'),
-      hook:get(r,'钩号')||'', cast:get(r,'抛投'), tideLabel:get(r,'潮段'), tideP:numOrNull(get(r,'潮位相位(0=满潮)')), outcome:get(r,'结果'), note:get(r,'渔获备注'), createdAt:Date.now()+ri};
+      hook:get(r,'钩号')||'', cast:get(r,'抛投'), tideLabel:get(r,'潮段'), tideP:numOrNull(get(r,'潮位相位(0=满潮)')), outcome:get(r,'结果'), note:get(r,'渔获备注'), depthM:numOrNull(get(r,'水深m')), tideM:numOrNull(get(r,'潮高m')), createdAt:Date.now()+ri};
+    c.depthManual = c.depthM != null;
     c.tideManual = !!c.tideLabel && tideLabel(phaseAt(t, c.time)) !== c.tideLabel;
     L.catches.push(c); nc++;
   });
@@ -567,6 +707,7 @@ function importJson(text){
   const d = JSON.parse(text); if(!d || !Array.isArray(d.trips) || !Array.isArray(d.catches)) throw new Error('format');
   const have = k => new Set(L[k].map(x => x.id)); let nt = 0, nc = 0;
   const ht = have('trips'); d.trips.forEach(t => { if(t && t.id && !ht.has(t.id)){ L.trips.push(clean(t)); nt++; } });
+  (Array.isArray(d.spots) ? d.spots : []).forEach(s => { if(s && s.name && !spotOf(s.name)) L.spots.push(s); });
   const hc = have('catches'); d.catches.forEach(c => { if(c && c.id && !hc.has(c.id)){ L.catches.push(clean(c)); nc++; } });
   return [nt, nc];
 }
@@ -592,6 +733,7 @@ document.addEventListener('click', async e => {
     wrap.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b === chip && !on)));
     const ci = wrap.querySelector('[data-custom]'); if(ci) ci.value = '';
     if(k === 'tideLabel'){ S.sheet.data.tideManual = !on; if(on) refreshAutoTide(); }
+    if(k === 'cast') refreshAutoDepth();
     return;
   }
   const b = e.target.closest('[data-act]'); if(!b) return;
@@ -602,6 +744,17 @@ document.addEventListener('click', async e => {
   else if(act === 'end-trip'){ const t = L.trips.find(x => x.id === b.dataset.trip); if(!confirmTap(b, '再点一次确认收竿')) return;
     await writeDoc('trips', {...clean(t), endTime: t.date === todayStr() || elapsed(t) ? nowHM() : (t.startTime||nowHM())}); toast('已收竿。环境没填全的话，回家在“记录”里补。'); }
   else if(act === 'new-catch') newCatchForm(b.dataset.trip);
+  else if(act === 'spot-locate'){ b.textContent = '正在定位…';
+    try{ const c = await locate(); if(S.sheet && S.sheet.type === 'spot'){ S.sheet.data.lat = r6(c.latitude); S.sheet.data.lng = r6(c.longitude); renderSheet(); toast(`已定位，精度约 ±${Math.round(c.accuracy)} 米${c.accuracy > 30 ? '，偏差有点大，可以到地图上再挪一下' : ''}`); } }
+    catch(e){ b.textContent = '用当前位置'; toast(e && e.code === 1 ? '没有定位权限。到手机设置里允许这个应用使用位置，或者改用地图选点。' : '没定到位，到开阔一点的地方再试，或者改用地图选点。'); } }
+  else if(act === 'spot-pick'){ S.sheet.picking = true; renderSheet(); try{ window.scrollTo(0,0); }catch(e){} }
+  else if(act === 'pick-cancel') closePicker();
+  else if(act === 'pick-ok'){ if(!map){ closePicker(); return; } const c = map.getCenter(); S.sheet.data.lat = r6(c.lat); S.sheet.data.lng = r6(c.lng); closePicker(); toast('位置已选好，记得点“保存钓点”'); }
+  else if(act === 'pick-layer'){ if(!map) return; const k = b.dataset.layer; Object.entries(mapLayers).forEach(([n,l]) => n === k ? l.addTo(map) : map.removeLayer(l));
+    document.querySelectorAll('[data-act="pick-layer"]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }
+  else if(act === 'pick-locate'){ if(!map) return; try{ const c = await locate(); if(map) map.setView([c.latitude, c.longitude], 18); }catch(e){ toast('没定到位，手动拖地图吧。'); } }
+  else if(act === 'new-spot') openSheet({type:'spot', isNew:true, data:{name:'', basis:'海图水深'}});
+  else if(act === 'edit-spot'){ const n = b.dataset.spot, sp = spotOf(n); openSheet({type:'spot', isNew:false, data:{...(sp || {name:n}), basis:'海图水深'}}); }
   else if(act === 'edit-catch'){ const c = L.catches.find(x => x.id === b.dataset.id); openSheet({type:'catch', isNew:false, data:clean(c)}); }
   else if(act === 'del-catch'){ if(!confirmTap(b, '再点一次删除')) return; const id = b.dataset.id; closeSheetQuiet(); await deleteDoc('catches', id); toast('已删除'); }
   else if(act === 'del-trip'){ if(!confirmTap(b, '再点一次，连同渔获一起删除')) return; const id = b.dataset.trip;
@@ -617,7 +770,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if(!S.sheet) return; const el = e.target;
-  if(el.dataset.input){ S.sheet.data[el.dataset.input] = el.value; if(el.dataset.input === 'time') refreshAutoTide(); }
+  if(el.dataset.input){ S.sheet.data[el.dataset.input] = el.value; if(el.dataset.input === 'time'){ refreshAutoTide(); refreshAutoDepth(); } if(el.dataset.input === 'depthM' && S.sheet.type === 'catch') S.sheet.data.depthManual = el.value !== ''; }
   else if('custom' in el.dataset){ const wrap = el.closest('[data-field]'); S.sheet.data[wrap.dataset.field] = el.value.trim() || null;
     wrap.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed','false')); }
 });
