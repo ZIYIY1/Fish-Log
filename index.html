@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>码头钓记</title>
-<meta name="theme-color" content="#1F5C66">
+<meta name="theme-color" content="#9A5A2C">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="钓记">
@@ -14,147 +14,224 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{
-  --paper:#EEF2EF; --surface:#F9FBFA; --ink:#14262B; --muted:#56696D; --line:#C9D5D1;
-  --harbour:#1F5C66; --harbour-soft:#D5E5E3; --float:#E8A317; --on-float:#1B1605;
-  --timber:#6B5B4B; --danger:#B3402E;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --paper:#0E1B1F; --surface:#15262B; --ink:#E4ECEA; --muted:#8FA3A6; --line:#2A4046;
-    --harbour:#6FB7C0; --harbour-soft:#1B383E; --float:#F0B030; --on-float:#1B1605;
-    --timber:#B79E85; --danger:#E0715E;
-  }
-}
-:root[data-theme="dark"]{
-  --paper:#0E1B1F; --surface:#15262B; --ink:#E4ECEA; --muted:#8FA3A6; --line:#2A4046;
-  --harbour:#6FB7C0; --harbour-soft:#1B383E; --float:#F0B030; --on-float:#1B1605;
-  --timber:#B79E85; --danger:#E0715E;
+  --ground:#FBF0CF; --surface:#FFFAE8; --well:#F2DFAE; --ink:#36210F; --muted:#6A4A2E; --line:#DDBF84;
+  --wood:#9A5A2C; --edge:#4A2A1C; --cream:#FBE6C0; --water:#BFE3E8; --water-sh:#8FC3CB; --waterline:#2F7F8C;
+  --gold:#F2B632; --gold-hi:#FFE08A; --gold-lo:#C98A12; --red:#D9542B; --danger:#B3402E;
+  --raised:inset 3px 3px 0 #FFFFFF, inset -3px -3px 0 var(--line), 0 0 0 3px var(--edge);
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;background:var(--paper);color:var(--ink);
-  font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
-  font-size:16px;line-height:1.55;
-}
-.num{font-family:"Barlow Condensed","DIN Alternate","Arial Narrow",system-ui,sans-serif;font-weight:600;letter-spacing:.01em}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;font-size:16px;line-height:1.5}
+.num{font-weight:700}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:3px solid var(--float);outline-offset:2px}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+img.spr{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+img.spr.ghost{filter:brightness(0);opacity:.28}
 
-#app{max-width:560px;margin:0 auto;padding:18px 16px 96px;padding:calc(18px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
-.mast{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
-.mast h1{font-size:1.35rem;margin:0;font-weight:700;letter-spacing:.04em}
-.sync{font-size:.8rem;color:var(--muted)}
+#app{max-width:560px;margin:0 auto;padding:0 18px 96px;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.mast{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 -18px 16px;padding:14px 18px 12px;
+  padding-top:calc(14px + env(safe-area-inset-top));background:var(--wood);color:#fff;box-shadow:0 3px 0 var(--edge)}
+.mast h1{font-size:1.12rem;margin:0;font-weight:900;letter-spacing:.08em}
+.sync{font-size:.76rem;color:var(--cream)}
 
-h2{font-size:1.5rem;line-height:1.25;margin:0 0 4px;font-weight:700}
-h3{font-size:1rem;margin:28px 0 8px;font-weight:700;color:var(--harbour)}
-.sub{color:var(--muted);font-size:.92rem;margin:0}
-.sub .num{font-size:1.1rem;color:var(--ink)}
+h2{font-size:1.65rem;line-height:1.2;margin:0 0 2px;font-weight:900}
+h3{font-size:.95rem;margin:26px 0 8px;font-weight:900;color:var(--wood);letter-spacing:.04em}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.sub .num{color:var(--ink)}
+.kicker{font-size:.8rem;font-weight:700;letter-spacing:.08em;color:var(--wood)}
+.note-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.note-head .where{font-size:.88rem;font-weight:700}
+.note-head .where small{font-weight:400;color:var(--muted);font-size:.84rem;margin-left:6px}
 
-.tide{margin:16px -16px 0;background:var(--surface);border-block:1px solid var(--line);padding:10px 16px 6px}
-.tide svg{display:block;width:100%;height:auto}
-.tide-note{font-size:.82rem;color:var(--muted);margin:2px 0 6px}
+/* 环境四格 */
+.cond{all:unset;box-sizing:border-box;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;margin-top:14px;cursor:pointer;
+  border-top:2px solid var(--edge);border-bottom:2px solid var(--edge)}
+.cond span{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border-right:2px solid var(--line);font-size:.94rem;font-weight:700;text-align:center}
+.cond span:last-child{border-right:0}
+.cond small{font-size:.72rem;font-weight:400;letter-spacing:.15em;color:var(--muted)}
+.cond:focus-visible{outline:3px solid var(--red)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:10px;
-  border:1.5px solid var(--harbour);background:transparent;color:var(--harbour);font-weight:600}
-.btn.primary{background:var(--float);border-color:var(--float);color:var(--on-float);min-height:60px;font-size:1.15rem;width:100%;border-radius:14px}
-.btn.solid{background:var(--harbour);color:var(--paper)}
-.btn.quiet{border-color:var(--line);color:var(--ink);font-weight:500}
-.btn.danger{border-color:var(--danger);color:var(--danger)}
-a.btn{text-decoration:none}
-.mapwrap{position:relative;height:58vh;min-height:320px;margin:12px -16px 0;background:var(--harbour-soft)}
-#map{position:absolute;top:0;right:0;bottom:0;left:0}
-.cross{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:1100;pointer-events:none;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 2px #14262B,inset 0 0 0 2px #14262B}
-.cross::before,.cross::after{content:"";position:absolute;background:#E8A317;box-shadow:0 0 0 1px #14262B}
-.cross::before{left:50%;top:-10px;bottom:-10px;width:2px;margin-left:-1px}
-.cross::after{top:50%;left:-10px;right:-10px;height:2px;margin-top:-1px}
-.btn.small{min-height:40px;padding:0 12px;font-size:.9rem}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* 潮汐圆盘 */
+.dialcard{position:relative;display:flex;justify-content:center;margin:17px 3px 3px;padding:12px 10px;background:var(--surface);box-shadow:var(--raised)}
+.dial-wrap{position:relative;width:273px;max-width:100%}
+.dial-wrap canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges}
+.dial-center{position:absolute;left:0;right:0;top:50%;text-align:center;pointer-events:none;line-height:1.1}
+.dial-center .k{position:absolute;left:0;right:0;top:-62px;font-size:.8rem;color:var(--muted)}
+.dial-center .v{display:block;margin-top:22px;font-size:3.1rem;font-weight:900}
+.dial-center .v small{font-size:1.05rem;font-weight:500}
+.dial-center .v.txt-only{font-size:1.5rem;margin-top:34px}
+.dial-center .s{display:block;margin-top:4px;font-size:.92rem;font-weight:700}
+.corner{position:absolute;display:flex;flex-direction:column;line-height:1.3;font-size:.8rem}
+.corner b{font-weight:900}.corner .t{font-size:1rem;font-weight:700}.corner small{color:var(--muted);font-size:.78rem}
+.corner.tl{left:12px;top:10px}.corner.tr{right:12px;top:10px;align-items:flex-end}
+.corner.bl{left:12px;bottom:10px}.corner.br{right:12px;bottom:10px;align-items:flex-end}
+.tide-note{font-size:.84rem;color:var(--muted);margin:10px 0 0}
+.tide-note a{color:var(--wood);font-weight:700}
+
+.wells{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;margin-top:14px}
+.well{display:flex;flex-direction:column;align-items:center;padding:7px 0;background:var(--well);box-shadow:inset 3px 3px 0 var(--line)}
+.well small{font-size:.75rem;color:var(--muted)}
+.well b{font-size:1.35rem;line-height:1.15}.well b i{font-style:normal;font-size:.75rem;font-weight:500;color:var(--muted)}
+
+.warnbox{margin-top:14px;padding:9px 12px;background:#F9DCC4;box-shadow:0 0 0 3px var(--danger);font-size:.86rem;line-height:1.55}
+.warnbox b{color:var(--danger)}.warnbox a{color:var(--danger);font-weight:700}
+
+/* 按钮 */
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;margin:3px;padding:0 16px;border:0;border-radius:0;
+  background:var(--surface);color:var(--ink);font-weight:700;box-shadow:var(--raised);text-decoration:none}
+.btn:active{transform:translate(1px,1px)}
+.btn.primary{width:calc(100% - 6px);min-height:58px;background:var(--gold);font-size:1.18rem;font-weight:900;letter-spacing:.15em;
+  box-shadow:inset 3px 3px 0 var(--gold-hi), inset -3px -3px 0 var(--gold-lo), 0 0 0 3px var(--edge)}
+.btn.solid{background:var(--wood);color:#fff;box-shadow:inset 3px 3px 0 #B97A45, inset -3px -3px 0 #6F3F1D, 0 0 0 3px var(--edge)}
+.btn.quiet{font-weight:500}
+.btn.danger{color:var(--danger);box-shadow:inset 3px 3px 0 #fff, inset -3px -3px 0 var(--line), 0 0 0 3px var(--danger)}
+.btn.small{min-height:40px;padding:0 12px;font-size:.88rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .stack{display:grid;gap:10px;margin-top:16px}
 
+/* 渔获时间轴 */
+.ents{list-style:none;margin:6px 0 0;padding:0}
+.ent{all:unset;box-sizing:border-box;display:grid;grid-template-columns:46px 10px 1fr auto;gap:10px;align-items:start;width:100%;cursor:pointer}
+.ent:focus-visible{outline:3px solid var(--red)}
+.ent .t{font-size:1.02rem;font-weight:500;padding-top:6px}
+.ent .rail{display:flex;flex-direction:column;align-items:center;align-self:stretch}
+.ent .rail::before{content:"";width:8px;height:8px;background:var(--wood);margin-top:12px}
+.ent .rail::after{content:"";flex:1;width:2px;background:var(--line)}
+.ents li:last-child .rail::after{background:transparent}
+.ent .body{display:flex;gap:10px;align-items:flex-start;padding-bottom:14px;min-width:0}
+.ent .body img,.ent .body .nospr{width:54px;height:33px;flex:none;margin-top:2px}
+.ent .nm{font-size:1.04rem;font-weight:700}.ent .nm b{font-size:1.35rem}.ent .nm small{font-size:.78rem;font-weight:400;color:var(--muted)}
+.ent .meta{display:block;font-size:.8rem;color:var(--muted);line-height:1.5}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:2px;font-size:.92rem;font-weight:700;
+  background:var(--surface);color:var(--wood);box-shadow:0 0 0 2px var(--wood)}
+.badge.on{background:var(--wood);color:#FFF6DC;box-shadow:0 0 0 2px var(--edge)}
+.badge.lost{color:var(--muted);box-shadow:0 0 0 2px var(--line)}
+
+/* 记录列表 */
+.log{list-style:none;margin:0;padding:0;border-top:2px solid var(--edge)}
+.log li{border-bottom:2px solid var(--line)}
+.log button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:70px 1fr auto;gap:10px;align-items:center;width:100%;padding:12px 2px;cursor:pointer}
+.log button:focus-visible{outline:3px solid var(--red)}
+.log .t{font-size:1.05rem;color:var(--wood)}
+.log .main{font-weight:700;min-width:0}
+.log .meta{display:block;font-weight:400;font-size:.82rem;color:var(--muted)}
+.log .len{font-size:1.25rem;text-align:right;white-space:nowrap}
+.log .len small{font-size:.78rem;font-weight:500;color:var(--muted)}
+.empty{padding:20px 0;color:var(--muted)}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
-.tag{font-size:.82rem;padding:3px 9px;border-radius:999px;background:var(--harbour-soft);color:var(--ink)}
-.tag.todo{background:transparent;border:1px dashed var(--timber);color:var(--timber)}
+.tag{font-size:.8rem;padding:3px 9px;background:var(--well)}
+.tag.todo{background:transparent;border:1px dashed var(--muted);color:var(--muted)}
 
-.log{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
-.log li{border-bottom:1px solid var(--line)}
-.log button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;width:100%;padding:12px 2px;cursor:pointer}
-.log button:focus-visible{outline:3px solid var(--float)}
-.log .t{font-size:1.15rem;color:var(--harbour)}
-.log .main{font-weight:600}
-.log .meta{display:block;font-weight:400;font-size:.84rem;color:var(--muted)}
-.log .len{font-size:1.35rem;text-align:right;white-space:nowrap}
-.log .len small{font-size:.8rem;font-weight:500;color:var(--muted);font-family:inherit}
-.log.trips button{grid-template-columns:78px 1fr auto}
-.empty{padding:22px 0;color:var(--muted)}
+dl.env{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;margin:0;border-top:2px solid var(--edge)}
+dl.env div{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+dl.env dt{color:var(--muted)} dl.env dd{margin:0;font-weight:700;text-align:right}
 
-dl.env{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;margin:0;border-top:1px solid var(--line)}
-dl.env div{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.92rem}
-dl.env dt{color:var(--muted)} dl.env dd{margin:0;font-weight:600;text-align:right}
+/* 底栏 */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--wood);box-shadow:0 -3px 0 var(--edge);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+.tabs div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tabs button{all:unset;box-sizing:border-box;text-align:center;padding:12px 0 14px;font-size:.88rem;font-weight:700;color:var(--cream);cursor:pointer;border-top:4px solid transparent}
+.tabs button[aria-current="page"]{color:#fff;border-top-color:var(--gold)}
+.tabs button:focus-visible{outline:3px solid #fff;outline-offset:-3px}
 
-/* bottom tab bar */
-.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom);z-index:5}
-.tabs div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
-.tabs button{all:unset;box-sizing:border-box;text-align:center;padding:14px 0 12px;font-weight:600;color:var(--muted);cursor:pointer;border-top:3px solid transparent;margin-top:-1px}
-.tabs button[aria-current="page"]{color:var(--harbour);border-top-color:var(--float)}
-.tabs button:focus-visible{outline:3px solid var(--float);outline-offset:-3px}
-
-/* sheet */
-[hidden]{display:none !important}
-.sheet{position:relative;min-height:100vh;background:var(--paper)}
-.sheet-in{max-width:560px;margin:0 auto;padding:14px 16px 24px}
+/* 表单页 */
+.sheet{position:relative;min-height:100vh;background:var(--ground)}
+.sheet-in{max-width:560px;margin:0 auto;padding:16px 18px 24px;padding-top:calc(16px + env(safe-area-inset-top))}
 .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.sheet-foot{position:-webkit-sticky;position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
-.sheet-foot > div{max-width:528px;margin:0 auto;display:flex;gap:10px}
-.sheet-foot .btn.primary{flex:1}
+.sheet-foot{position:-webkit-sticky;position:sticky;bottom:0;background:var(--surface);box-shadow:0 -3px 0 var(--edge);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.sheet-foot > div{max-width:528px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.sheet-foot .btn.primary{flex:1;width:auto}
 .field{margin-top:18px}
-.flabel{font-size:.9rem;font-weight:700;margin-bottom:8px}
+.flabel{font-size:.88rem;font-weight:900;margin-bottom:8px}
 .flabel small{font-weight:400;color:var(--muted);margin-left:6px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-size:.95rem}
-.chip[aria-pressed="true"]{background:var(--harbour);border-color:var(--harbour);color:var(--paper);font-weight:600}
-.txt{width:100%;min-height:48px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;padding:2px}
+.chip{min-height:44px;padding:0 14px;border:0;border-radius:0;background:var(--surface);font-size:.95rem;box-shadow:0 0 0 2px var(--line)}
+.chip[aria-pressed="true"]{background:var(--wood);color:#FFF6DC;font-weight:700;box-shadow:0 0 0 2px var(--edge)}
+.txt{width:100%;min-height:48px;padding:0 12px;border:0;border-radius:0;background:#fff;margin-top:8px;box-shadow:inset 3px 3px 0 var(--well), 0 0 0 2px var(--line)}
+.txt:focus{outline:0;box-shadow:inset 3px 3px 0 var(--well), 0 0 0 3px var(--wood)}
 textarea.txt{padding:10px 12px;min-height:76px;resize:vertical}
 .pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.pair .field{margin-top:18px}
 .pair .txt{margin-top:0}
-.big-num{font-size:1.6rem;text-align:center}
-details.more{margin-top:22px;border-top:1px solid var(--line);padding-top:6px}
-details.more summary{padding:10px 0;font-weight:700;color:var(--harbour);cursor:pointer}
-.section-note{margin:26px 0 0;padding-top:14px;border-top:1px solid var(--line);font-weight:700}
+.big-num{font-size:1.6rem;font-weight:700;text-align:center}
+details.more{margin-top:22px;border-top:2px solid var(--line);padding-top:6px}
+details.more summary{padding:10px 0;font-weight:900;color:var(--wood);cursor:pointer}
+.section-note{margin:26px 0 0;padding-top:14px;border-top:2px solid var(--line);font-weight:900}
 .section-note small{display:block;font-weight:400;color:var(--muted)}
-.err{color:var(--danger);font-size:.9rem;margin-top:8px;min-height:1.2em}
+.err{color:var(--danger);font-size:.9rem;margin-top:8px;min-height:1.2em;font-weight:700}
+.aqua{display:flex;gap:14px;align-items:center;margin:8px 3px 0;padding:10px;background:var(--surface);box-shadow:var(--raised)}
+.aqua .port{width:126px;flex:none}
+.aqua b{display:block;font-size:1.12rem;font-weight:900}.aqua small{display:block;color:var(--muted);font-size:.82rem}
 
-/* stats */
-.figs{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-block:1px solid var(--line);margin-top:14px}
-.figs div{padding:12px 4px;text-align:center;border-left:1px solid var(--line)}
+/* 博物志 */
+.port{padding:8px 6px;background:var(--water);box-shadow:inset 3px 3px 0 var(--water-sh)}
+.port img{width:100%;height:auto}
+.dexgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.dexcard{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:1px;margin:3px;padding:9px 8px 10px;text-align:center;cursor:pointer;
+  background:var(--surface);box-shadow:var(--raised)}
+.dexcard:focus-visible{outline:3px solid var(--red);outline-offset:4px}
+.dexcard .port{width:100%}
+.dexcard .no{align-self:flex-start;font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:.06em}
+.dexcard b{font-size:1rem;font-weight:900;margin-top:4px}
+.dexcard i{font-size:.76rem;color:var(--muted)}.dexcard small{font-size:.76rem;color:var(--muted)}
+.dexcard.locked{background:transparent;box-shadow:0 0 0 3px var(--line)}
+.dexcard.locked .port{background:transparent;box-shadow:none}
+.dexcard.locked b{color:var(--muted);letter-spacing:.2em}
+.plate{display:flex;flex-direction:column;gap:8px;margin:16px 3px 3px;padding:12px 8px;background:var(--surface);box-shadow:var(--raised)}
+.plate .pno{font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--muted);padding-left:4px}
+.plate .fig{position:relative;background:var(--water);box-shadow:inset 3px 3px 0 var(--water-sh)}
+.plate .fig img{width:100%;height:auto;padding:3.4% 0 3%}
+.plate .fig svg{position:absolute;left:0;top:0;width:100%;height:100%}
+.plate .names{display:flex;justify-content:space-between;align-items:flex-end;padding:0 4px}
+.plate .names b{display:block;font-size:1.5rem;font-weight:900;line-height:1.2}
+.plate .names i{font-size:.82rem;color:var(--muted)}
+.plate p{margin:0 4px;font-size:.9rem;line-height:1.7}
+.plate dl{margin:0 4px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem}
+.plate dt{color:var(--muted)}.plate dd{margin:0}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:2px 4px 0;border-top:2px solid var(--edge);border-bottom:2px solid var(--edge)}
+.facts span{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border-right:2px solid var(--line);font-size:.92rem;font-weight:700;text-align:center}
+.facts span:last-child{border-right:0}
+.facts small{font-size:.72rem;font-weight:400;letter-spacing:.1em;color:var(--muted)}
+
+/* 统计 */
+.figs{display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px;border-top:2px solid var(--edge);border-bottom:2px solid var(--edge)}
+.figs div{padding:10px 4px;text-align:center;border-left:2px solid var(--line)}
 .figs div:first-child{border-left:0}
-.figs b{display:block;font-size:1.9rem;line-height:1.1}
-.figs span{font-size:.78rem;color:var(--muted)}
+.figs b{display:block;font-size:1.8rem;line-height:1.1}
+.figs span{font-size:.76rem;color:var(--muted)}
 .bars{display:grid;gap:7px}
-.bar{display:grid;grid-template-columns:minmax(84px,34%) 1fr;gap:10px;align-items:center;font-size:.9rem}
+.bar{display:grid;grid-template-columns:minmax(84px,34%) 1fr;gap:10px;align-items:center;font-size:.88rem}
 .bar .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar .track{position:relative;height:24px;background:var(--harbour-soft);border-radius:4px;overflow:hidden}
-.bar .fill{position:absolute;top:0;bottom:0;left:0;background:var(--harbour);border-radius:4px}
-.bar .val{position:absolute;right:6px;top:0;line-height:24px;font-size:.82rem;color:var(--ink);mix-blend-mode:normal}
-.cols{display:grid;gap:3px;align-items:end;height:96px;margin-top:6px}
-.cols i{display:block;background:var(--harbour);border-radius:3px 3px 0 0;min-height:2px}
+.bar .track{position:relative;height:24px;background:var(--well);box-shadow:inset 2px 2px 0 var(--line);overflow:hidden}
+.bar .fill{position:absolute;top:0;bottom:0;left:0;background:var(--gold);box-shadow:inset -2px -2px 0 var(--gold-lo)}
+.bar .val{position:absolute;right:6px;top:0;line-height:24px;font-size:.8rem}
+.cols{display:grid;gap:3px;align-items:end;height:96px;margin-top:6px;border-bottom:2px solid var(--edge)}
+.cols i{display:block;background:var(--wood);min-height:2px}
 .cols i.zero{background:var(--line)}
-.collabs{display:grid;gap:3px;font-size:.72rem;color:var(--muted);text-align:center;margin-top:4px;line-height:1.25}
+.collabs{display:grid;gap:3px;font-size:.7rem;color:var(--muted);text-align:center;margin-top:4px;line-height:1.25}
 .collabs b{display:block;color:var(--ink);font-size:.95rem}
-table.dtab{border-collapse:collapse;width:100%;font-size:.92rem}
-table.dtab th,table.dtab td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-table.dtab thead th{font-weight:500;color:var(--muted);font-size:.8rem}
-table.dtab tbody th{text-align:left;font-weight:600}
-table.dtab td{font-size:1.15rem}
-.hint{font-size:.84rem;color:var(--muted);margin:6px 0 0}
+.hint{font-size:.82rem;color:var(--muted);margin:6px 0 0}
 .scroll-x{overflow-x:auto}
+table.dtab{border-collapse:collapse;width:100%;font-size:.9rem}
+table.dtab th,table.dtab td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.dtab thead th{font-weight:500;color:var(--muted);font-size:.78rem;border-bottom:2px solid var(--edge)}
+table.dtab tbody th{text-align:left;font-weight:700}
+table.dtab td{font-size:1.1rem;font-weight:700}
 
-.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--paper);
-  padding:10px 16px;border-radius:10px;font-size:.92rem;z-index:40;max-width:88vw;text-align:center}
-@media (prefers-reduced-motion:no-preference){ .toast{animation:pop .18s ease-out} @keyframes pop{from{opacity:0;transform:translate(-50%,8px)}} }
+.mapwrap{position:relative;height:58vh;min-height:320px;margin:12px -18px 0;background:var(--water)}
+#map{position:absolute;top:0;right:0;bottom:0;left:0}
+.cross{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:1100;pointer-events:none;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 2px #14262B,inset 0 0 0 2px #14262B}
+.cross::before,.cross::after{content:"";position:absolute;background:#F2B632;box-shadow:0 0 0 1px #14262B}
+.cross::before{left:50%;top:-10px;bottom:-10px;width:2px;margin-left:-1px}
+.cross::after{top:50%;left:-10px;right:-10px;height:2px;margin-top:-1px}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--edge);color:#FFF6DC;
+  padding:10px 16px;font-size:.9rem;z-index:40;max-width:88vw;text-align:center;box-shadow:0 0 0 3px var(--gold)}
+@media (prefers-reduced-motion:no-preference){
+  .toast{animation:pop .18s steps(3,end)} @keyframes pop{from{opacity:0;transform:translate(-50%,8px)}}
+  .flash{animation:flash .6s steps(4,end)} @keyframes flash{0%{filter:brightness(3)}100%{filter:none}}
+}
 </style>
 </head>
 <body>
@@ -169,7 +246,7 @@ table.dtab td{font-size:1.15rem}
 window.addEventListener("error", function(e){ try{ var r = document.getElementById("toast-root"); r.innerHTML = '<div class="toast"></div>'; r.firstChild.textContent = "出错了：" + (e.message || e.type); }catch(_){} });
 /* ---------- 预设 ---------- */
 const PRESET = {
-  species:['黄鳍鲷 Bream','沙尖 Whiting','牛尾鱼 Flathead','银鲹 Trevally','小真鲷 Snapper','裁缝鱼 Tailor','皮匠鱼 Leatherjacket','黄尾鲹 Yakka','鲭鱼 Mackerel','黑毛 Luderick','比目鱼 Flounder','鲶鱼 Catfish','魟鱼 Ray','鱿鱼 Squid','章鱼 Octopus'],
+  species:['黄鳍鲷 Bream','沙尖 Whiting','牛尾鱼 Flathead','银鲹 Trevally','裁缝鱼 Tailor','皮匠鱼 Leatherjacket','黄尾鲹 Yakka','黑毛 Luderick','鮸鱼 Mulloway','河豚 Toadfish','小真鲷 Snapper','鲭鱼 Mackerel','比目鱼 Flounder','鲶鱼 Catfish','魟鱼 Ray','鱿鱼 Squid','章鱼 Octopus'],
   bait:['虾肉','沙丁鱼','鱿鱼条','海虫','泥虾 Nipper','鸡肉','面团','鱼块','贻贝','蟹'],
   rig:['活铅钓组','胡须钓组','串钩','天平钓组'],
   spot:[]
@@ -239,30 +316,6 @@ function tideLabel(p){
   if(p < .54) return '低潮平流';
   if(p < .67) return '涨潮初'; if(p < .81) return '涨潮中'; return '涨潮末';
 }
-function tideSvg(dots, nowP){
-  const W=340,H=134,mid=60,amp=34,base=H-26;
-  const X = p => ((p+.5)%1)*W, Y = x => mid - amp*Math.cos(2*Math.PI*(x/W-.5));
-  let d = ''; for(let i=0;i<=68;i++){ const x=i*W/68; d += (i?'L':'M') + x.toFixed(1)+' '+Y(x).toFixed(1); }
-  const seen = {};
-  const dotEls = dots.map(p => { const x=X(p), key=Math.round(x/9); const n = seen[key] = (seen[key]||0)+1;
-    return `<circle cx="${x.toFixed(1)}" cy="${(Y(x)-(n-1)*10).toFixed(1)}" r="5" fill="var(--float)" stroke="var(--ink)" stroke-width="1.3"/>`; }).join('');
-  let nowEl = '';
-  if(nowP != null){ const x=X(nowP), y=Y(x);
-    nowEl = `<line x1="${x}" x2="${x}" y1="${y}" y2="${base}" stroke="var(--timber)" stroke-width="1.5" stroke-dasharray="3 3"/>
-      <text x="${Math.min(Math.max(x,18),W-18)}" y="${Math.max(y-12,11)}" text-anchor="middle" font-size="11" fill="var(--timber)" font-weight="700">现在</text>
-      <circle cx="${x}" cy="${y}" r="3.2" fill="var(--timber)"/>`; }
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="潮位曲线，黄点是渔获">
-    <path d="${d} L${W} ${base} L0 ${base} Z" fill="var(--harbour-soft)"/>
-    <path d="${d}" fill="none" stroke="var(--harbour)" stroke-width="2.2"/>
-    <line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--line)"/>
-    ${nowEl}${dotEls}
-    <g font-size="11.5" fill="var(--muted)">
-      <text x="2" y="${H-7}">低潮</text><text x="${W*.25}" y="${H-7}" text-anchor="middle">涨</text>
-      <text x="${W/2}" y="${H-7}" text-anchor="middle" fill="var(--ink)" font-weight="700">满潮</text>
-      <text x="${W*.75}" y="${H-7}" text-anchor="middle">落</text><text x="${W-2}" y="${H-7}" text-anchor="end">低潮</text>
-    </g></svg>`;
-}
-
 /* ---------- 数据：只存在这台设备上（IndexedDB + localStorage 各一份） ---------- */
 const KEY = 'wharflog.v1';
 let L = {trips:[], catches:[], spots:[], lastBackup:null, savedAt:0};
@@ -381,7 +434,7 @@ function ranked(kind, values){
 }
 
 /* ---------- 界面状态 ---------- */
-const S = {tab:'today', tripId:null, sheet:null};
+const S = {tab:'today', tripId:null, dexId:null, dexFlash:null, sheet:null};
 
 /* 记住你停在哪：去看海图、切到别的应用再回来，哪怕系统把本应用重新加载了，也回到原来那一页，填到一半的表单也还在 */
 const UI_KEY = 'wharflog.ui';
@@ -389,7 +442,7 @@ function saveUi(){ try{ localStorage.setItem(UI_KEY, JSON.stringify({at:Date.now
 function restoreUi(){
   let u = null; try{ u = JSON.parse(localStorage.getItem(UI_KEY)); }catch(e){}
   if(!u || Date.now() - u.at > 30*60000) return;
-  S.tab = ['today','history','spots','stats'].includes(u.tab) ? u.tab : 'today';
+  S.tab = ['today','history','spots','dex','stats'].includes(u.tab) ? u.tab : 'today';
   S.tripId = u.tripId && L.trips.some(t => t.id === u.tripId) ? u.tripId : null;
   render();
   const sh = u.sheet; if(!sh || !sh.data) return;
@@ -399,79 +452,236 @@ function restoreUi(){
 document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') saveUi(); });
 window.addEventListener('pagehide', saveUi);
 
+/* ---------- 博物志：Rozelle Bay 十种常见鱼 ---------- */
+const SPR = {"bream": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAAC3ElEQVR4nO2WX0hTURzHv9e8MBVcMQlu6wZdZVxGknvZCERkZfiSRLAKtETmg0SKe7C3BWWYjMJIKImiPySFRQ8Ghsh8GL4E+eKDDRkL0bkURZng1Q05Pdzds3u3u7sS9iD0fTn3nPM7v9/nnN/9nXuBwy5vPUe6LwmkWP5L/8W4q4knPg8BJ1YitcsT1sRiZ1NC+bEy2g5/jTJFB3I6mom1cgMBfwrx8DoAQAGLh5OaNrXLk5GppQND5QVyOpppWs61XAAA+IPALesTQ4c+DwFwcChdIKejmSgQ2XoW6wVi6U5MHzDgt4A1seQg6csBMoIpBNgvvv/rdd56jryaiecAa4DUMDU2AR2uCACg78U27GcdiCxEUWMTqH1kIapx5g+2UbDlhAWAdl4BYctK06nNhaJACowSsMMVQUV1H6qttZgL3cTr7/o71QP0B9twqhFwJiwEAFwnF7CzKUEB4UQLLY68J2Q+atY4B4Bqa60+hYE0PtKn3X/+d7oKMyBDnxgYpsx22orWFjedSMKNuZD8/G1OQGuLG6Pj0NgU6t97JKf47dJdXEQPHb/Tv4F8VUiBZn/MYmDgIdq9XtX0ZQDA+lYIsdU1tPP3Ef/QA06sknda8RSx1TWNQ3W/xiag0XVG7kzrhc9VifIg2u1ZMLmKh9fBiVVYPDGGpDs3Ag2e1nFzOebDUQx292rGA34Lupp43c8PPaE3H58z0u4eudJ5FXZR0LNF0j2NRQOA+XCmqr68HIMk7QEAxicnGNM2R9iyDfg88rzPQ5CSDKoMAHWgdmwXBdQ3NOQNnK26lU5wYhVm9hMYnsxcjErglKQFy5YGaHxylAFAAKC1+0bB4Io+Dz3Gg2s/5XdrxdhWDVbwYlRBQQFTwwGZE7g9WImtfV5eE5xiLCU8CfhlG6MqygYrCKQDRuEqUr9Qd10eMB9ZxruJELUZmVpiWBNLdjb38wYrior9g/Zfh05/ANG4OGSr4cRrAAAAAElFTkSuQmCC", "whiting": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACIklEQVR4nO2UT0hTcRzAPy9ee5NpS4gohUy2xVqIt+bIg5c6BUYYQpSwDkEhuQ5DpCiISIaHEqLoYhB1MOwgeJC6FDiWQeRJRss/l0wiGG7P3NugXwd9v97b3NK6ROxz+v7+vN/38/u93/cHVar8ZyjbmdzbFRKrK2lc7nrujyW29e1WUSsNdrUHhRnX1ircvtnKUmqWBl+AQm5NPJqYUYpF/1a4RMgqEe45YhuLJ/KAlwYf9F3YRVZvFQ5njU3UKrzTWVNRzNzI41dJOUcGpkixxJ9wLOSQYpHoDLouGJuaVgDCx/3C5a6nkFsjNtjGUmqWoYdfpZRqypgizT4vAIc7BvA0tjDx7CxT7z7SfvTQloXiiU+Al4Vvec6cDgDgcGpCUw2iFzV5kgDDIxnbCakAdbvdUgTAFzyHp7FFxvOZ1/iCHWUFUtNPbW3rWibXr230pSdlX//AW8x7aBOa/2zw4k2a3kthAPSszvsPz2Wc+55jde6O/A1i7xVbsv2BU2Vli/kSn6w4rgI0HdjHyROhihPLyZRjcS5paz+4N45SWCZy/ldfbLANQFhPSQV4Mj6qAELTnFyOdJYs7mnag0GEhSyQTZaMF9Nc9xJteX0D0RuLGD/cZg4Kul+43IWNS71erXnDL8x7VFKSPZ3dsuyv9ndvmvBubFTG2o4Vhm4dtJX98EiGvJH77XtUsew3wypnxdxt8cLmw2hNUKVKlX+Nn5bu84NCRRQZAAAAAElFTkSuQmCC", "flathead": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACTUlEQVR4nO2UXUgUURiGn8lN2W1CG6uVGLck01JbRLe0P4XYqEQySEn6kS4swW7Cy64iwqsQryRLqOyfgjKhH4igqBAiqNUVMqLci2grhy4mV1fd04XsaUddTeiufWCY882853zvmfm+AwkSJPjPUOY7YcvqXJGuqQwZJi8/vp/3/LmwTX3gcWULgPLdNVy5eANXxqQkNDKG6kimfOsy3PkufP4AdnuyeNLXq+zZUCyGDJOo0b8xHG9j0lD+8pXCZkuixKMBcPZcM3e7uynxOAAIGiZOTWVg0GBg0ACgvq6QyGXEgZpcfP6ANBq9j09ExEREsMKZyv3Xb2RSb8F6sbE4VeoAETWlRM2sy1sEgFNTAXjYMwxAUU4Ep6YSCP4kZeGfD+rUVIKGaYmjxmNjgG2l2Vy63k84PI4AGo64pfGTrT7MHybfwp8VgAUAzqWLKXW75IJBw6SxWqcoJwJAlq5ZNLGJY+dl6ZqMs3RNXncevMVblkGFVydvrcPy62p3pLEmM0XGNoCxJBXTngkEqK8tky8L8lbJsa5r+PwBqisK8fkDlG0qmKbruPmctvYWehqaqDt+AoDGhiba2lssJp52dRIPBaBx/0Fx6vThuCKA1uYzuPNdbK+qm1UXy6cPfZb4/IVXjIZ+UelNt9TasxffZWHbANpuXVNGR0Li2NHNcRevqtk7Y5KpdN2+N6243/WPs0RL4+rjRwrA1y+TRT0TlrY8tHOXmH3P0xkNDbOvUpcGOjp7cdiT52z/eG3/Tw622HMotr0TJEgA/AZzLfpXA4mAWQAAAABJRU5ErkJggg==", "trevally": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACh0lEQVR4nO2VQUhTcRzHP7OaDrFcpWAqyIStzamjMboIMaGDgRch6LAOla1WhhAUoUQhbIfoUpJRZgR66FKXyENCEnQoQhCpLT0MD5NoFrOZ7m0dXoftPd/zvaejsEt+L+///r//+/0+/9//935/2Nb/ooDfJm6F351/8tGZYy4xGDBTanGJ2YxAhdXKcipFhdXK/edTpi0BavV16magfs8ykfAB5mNRImEP87EoDU6H/MwJGdFcZtkULOC3iWOTcc0aDZAE4jneYejs6gRAG7ecbzW2YMAsg42MR3WhpAyDFkoF1OrrFDcC0YK1AW2QgAt1UQ1YNqMOGOryijkhQyTsoa9/mqIyBNDidsjjz1MfOOj1ye/3unu5+OiO/D7zcRaAoURQF0wJcvN6/mj7+qcxyp48KWVHCXO5o53G2mYVwGaSAAHmXr6mfvdPBgf2FmrMxXwsyuBwWjc7oMjQ/n2VtLgdnGs/LBsba5sBOF1XPNBjeuXx2uZG5LmHYzlDGBWQ8HWB7+/fsHjIKRtn4u+YeDXBLvtRAFZiQdVOG5wuVmtuqxx2VetE+VL0ftaAXG43Z0PnVcbFpTQ/VlZZXEoDkFRAVNfAqoHTT3NxAJ4OjlJekmTgmkW26RW7LtDw6F1TRsiKJy6dpMlu0w1U3T6+KURVogdfIYN8S/NgMm4q+eUVc0KOSDi/ttRSZuBl3V+WEbIq5012G0f8fsPgSlUlevJHqRNEapLmMksBzAOg26dUQM9ePDEBIsCpK926gZXyVQyt1dQ6m17xKrq3aHR0mj5UgEICM1L5jiS+G5Wqub7+afJ326xhnwEYGY+ajOrory7CUJdXlC7V5VRqw995W9v6V/oNOvQky1q6gdIAAAAASUVORK5CYII=", "tailor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACM0lEQVR4nO2US2gTURSGv6GNbaqx0yxEKEqaSijTBqyuGgwyofjAMAqKSHVjoXQlKLgpuHAhdCu6cqUrC0JBghYj0viMERosWkMJYrOULpLQpE1rA9dFkiGTmaTRbfNv5t5zLuf/5j4OtNTSbpZf1URtbHBYFX5VE4PDqin3P2q3CroVn6m4Y28XgYkga/kNkVvfAMDW1oZyfgTF4yKRTGHv3CMKm39wyg7S2Rw/vkakRuZ+VRMfIiHDGgNQBeTQ6FHLAm9ji8gjHuQ6BuduXCSRTOmAgLCC8quaKGxuEZgIAhigdCC34hP1QBppNZ1lNbZYGpe/SjlXLBZxKz7xKxGVakHKwCZJ1TCuoSN64snELfp7vbgv+egdGmgaMLX00wz9aRnHvi7OTmqGHVwJx1n4HDYfmcPZbYAB6O/1Ng1Rrdo69WJWMDrQscN93D6jAdAj7y9lrlwDIPJmHnU0wKMXz/W/mwxeMBlksms7wj77OL/jmnaA+EKc6XvTTN2ZMhXO5zfIZNd0mMsnAk2ZA3xfXtbHTx/MMDx2Up/3nT4OICyP7FvyiyQ7e0SlgHfAfGfujo83ZVzRbDSK4nERffwau81GaG5GyqznRGFzC8XjAkqv0t7ZYf3K3sdeSfL9HjF286rBoPvgAUvDegCVnQR4+XDWcE8qxvbODgNYtQx9KDQ3IwH/1HEL29v4rp/S5yvhOL/fLTVsjNVgtY2xYSdtVn5VE+lsDqfsoNagpZZ2vf4C/VjyNVNyZEEAAAAASUVORK5CYII=", "leatherjacket": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAAC20lEQVR4nO2Vz0tUURTHP5OJaZLjqGg4xUPljSPqwISIODkrDTPGgYwUsx8EbvwLEiZII9q1ciO0SQKjFilopbthoF80ZGDMzELewhaa6fTLNMPb4vke83wzOYEVhN/Nve+cc+/9vHPuD9jT/6xef6341wy6ev21QnnuEz0tDhPUboLuTzdwceUHAN0dmbxfKRefv6tDy4qh/4rEt9V1kZ2TxcrSJ/ILDzH88I3ljwA1utSMVDXaGB5bBqy4m626v0mK66CVLonIzByVLhVwZCr621D7doLxthXhbStKGRNUrFugRnV3ZHLGI5lKmcyWFpAGk6h5fGys/8Ap29IGSwTpaXGIy+dzSbYPNSUtWZ2rXnjbMg0Ln7swRnlpDae7cgFMUNMxD3bGCSpWgsoyTRJ8Xs8AoKfFIdSSlhGZmWNw0EF2TpZIts9MGTpe3yicbadxyjamYx7dXl5aYwLQ/NMxD81yiHl8OGUbTtlGULHibj6Mz1stBgcdqRJikiFDp7y14uylAiAEQH9nnBujHvo743guqovLR14xHTu25bNS566mzq3GJWoeH81yKGl5fyVDhhYX1nj5cgm5wo5cYdehtFbrD7SHUJ6NM9Ae0sdqPrnCbsicNk+6MmToRSRmKSjIEXSp3x8/xQ3BQ5MS7oKvRGYUKl1lLGzYYSPO0KQEQN9JxdAPh2e5df0jN68dTRvItIc2N9cIh2f1ibVWWwQgv6qJq2Me3d93UtF9AA0lE6y8DfLo3jtGH7+2BALRtIFMp+zJ04gFEP6uCcJhAGl7iA6hQQ5NSjSUTGzBzNJan0dk5gNZFvV2H5mKWtZWJXEgJ0p3RyaBQJRUl2bKm/REQ6XwdxWn/WfAFsicfrxv3/nC/ZBiWOOMRxLbbYlK+XRomQLYCUwDgTzddvfBhgkGSGpLCygBCg0smfIOZtBar4IEAlHWVtfJL1RSluSvqNdfK3Z6o/a0W/oJcX4jWII21pwAAAAASUVORK5CYII=", "yakka": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACVklEQVR4nO2UT0gUURyAv6XNaQtFl1BhdyfNdaOtca8auKVXCToIVmgskRBmF8WDEBvEgtSGl8JDRkQe+sN6a6GDFdGhSyeLBUWYWAtckF00aZjp8DroDM7O5NKhLu13eW/m/d77fe+9+Q1UqfI/M9qviEu9LeJv5vC6vYzFFEdS2Q+pZAg1l6fwIyLWNInudtgsfqfOX+to72c+eSolH+1XRHmcTcgU6egLuS5w/RmATGMvNAKp86Dm8rRGQ45W13Qh+SRXsdF+ReiaTioZArBJWZ1YTBG/E/kTxjrytEblHTGZG7dWbVLDfRGRngqj5vLMzBnMZpedJ2TKHD8RsAYmLz6gLaAQHwwSiYV4OPGBK+muikLTi8AigAyLsPx1P2d6OgVA+8EiI0M1VqyuGY75XoAG/yFL5tq5mwC0BRQAzp4apOvICxLZo0ChotBjArbn3ZscUb6h5vIAzMwZPHnzxXGdXoCfJYmtpQaGr16muLEFwOuPGQDevX2P3nSHhvUx6xrUXJ76eMZV6ELTHrbrYxU35AVoDjbT1dO5Z6ApUzo8TX284rp8XsoBECwkufe0mX21YSitWFc2MlSDrrWI8lPyAsy/fO4BRGJ8wBo4eSwKwOmebgDq4xlKZcncCBaStEZlgoXtDUzcNXiUXfDAwk5ERKSntnuSr8Yx3yp7UwogMT6wZ1KTudszTCbWbFWlFmBicgVdM6jzrzqqaDa77JF8ktA1g/RUGMkn2cre9h/akcIUq8T8qwXPAaNF1PlX2SxuYbZuH+tuTIFymSpVqvwLfgHdUuyY8guJ8QAAAABJRU5ErkJggg==", "luderick": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACh0lEQVR4nO2VwWsTQRSHv6RmbZsqpjWazS6hJlCqMU2DSLxoofQQpefcFC/9FzyKiAfvHhUFxYOexBa8BVoQDFVTI0UpNBZJ0sTYpgcjdYMZD+0u2WZ3aQsexP4us8N7+943M2/ewIH+Mbn2+kPIHxVebx+Nxg/08Wttcc9x7HRoN05hOS4AWq0WJ4ZkZEVltVQ0Ro8kiaam0Q76aSW7L0hbIB0CQI2dcgxy9mLCBCgrKoDYD5QlUFiOCyeI+vo63T29xmglranZ/n96MCnsjtq9G5j171Xb4DsBdQ2E/YT8UbHTN6IkxNCFKIFhxdJu2iEdJhBUTU5C/CYQVKmUiyZb+7xSLgKYwNxuN2E5LgqrH1whf1R4JImBsN9xcQaQFcyzR/eIKDGUqHMNAR3AlXKRUDyyDdYl+sPHjRoDWCvULI/MAOr19hEIqoyPXzKMESUGwGg8RnRklExmzmS3m2cycybAQFBlZXnJlFjySM475OkSHDncQlUChvHG3ZsALOYXAPi1+ZOH9x8gKyqXr6QATP76/NrVNACPnzw3vm/fumMJYAt09Fg/g0NnOoIDVMs+VCVgXOmpqeuWwfTkumKxYXILeV49nQav2dfuFprOcCw5KSbSKRKjIyand/NZzp1POqxrS7mFvPE9/eIlm9UGPp+P2eyMqaj1Wqp8LnXUkemWzWZnXIBxFXeCOQG0g2w3RjbqG+SXXruAtsQJodut1NEYdaiJdMpI6Pb0WCbX9Xb+fXuHdtRyKeeS3ki2jdG2tY8lJ42dmkinOgBKH7/g7dsqjG/VGlpTM56QtUKNpqbt69G1fcu2d0qXAKjX63Sf9LJWqLFcynUkc1r5X5NVuz/Qf60/JM8f6S67KoYAAAAASUVORK5CYII=", "mulloway": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACJElEQVR4nO2VT0gUURzHvxNDbqRba3RIhVDBjdFXl90ScmLGXQP35AahIINEyR7yHHWwQ4KnjnbyEDF4W/BWB/9ssBSBQ7BNzSFkOxR4WK1d18g27XWQ95zFN8MS5iH2c/k9Hj/m9/k9fu8NUKfOEaGRCE2q/fRf15Frlbk+eAFKVwe2t3/SFyuvJABIqv30W3ETodNBzGeXpUMXioY14QlUdit8rertKH2n9ESgAWNjfXA+5rloINAAJuiOL22rZlmeGA1rtFfv/Yue9jgX/AKlq4MLumM28wnsVBkaiVCRsCySId0KX7933qFHuVhV3P7gHBBa22zDmlUBsB/ZV1KpGCq7x+nS24wEAIPRq1TV27kwAMqkZCbjlhifMNDZSnD/wT3habhz/ViyHC6oXL6Cnd8BGjwp4fatCBM5gHymuRmkW8GIMcQ3O1sJAGDEGMLiYiPi8TiaTjWhXCrXFGdnTIxPGJidMT0aWfVsQm4734JYQkNho8g3F7LPAQCFjSJK5S0spx9XzcRwaprni2IsoSGf/4xYQhMWtTM+QiuWhUdTU3g4OemZxGSIfgdE90wTkrP35y39NA3pVxk3b4S9hXKrb6RQKERztoNLRDwbw6npmou6Obb+GuZcDpAbAQDzC3MSAHwt7A21CH7dkgOj1Lhr+Bb2w3xi4sfWOq6pZ32vO8Pr2lclJwdGhQ+ju9AzV8duWPdehQ6do/qX1anz3/EHh8gLECmLMroAAAAASUVORK5CYII=", "toadfish": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAACUklEQVR4nO2UT0gUcRTHPwtSGqLLsP1Bl5pydg5T7iFEMDxE7CEQijpsCWFWEnQQIqH1oJAUZGBEZZdYWA2lElloaUFqkCASgohYYg7DsqVIhwjaNWtWkKaDzbSys6OC3fZ7+v7ee/N+Hx7zflBWWWX9X3nckk17ZTObWwTAW1tNNreIt7YawPbvPumuPTaqCjeY5hYfejoPgCyteFnyARR6GxoguH8XguAl+my6CLTr+BHTKb4m0D+YeWTJz4PxNzTUN3L0sN+ukSU/enqe5ha/DQ3QeVZGUWQ+z34z1Q8pjwViGHl6I60YRt4cfzFTEqoIyIIJiAIBUQCgob4RgIAoMDr5Fp+3CoC2UNCOAyTVFFPTc0xNz8GWLE2iZIp7fPRGWtE0HYBT4d0YRt6Mv37vCFUE5K3ZSkAUSKop2kJBkmqK7s6gfaElK1d4LoxZsBtVEeXOSp9Zs32ZJ9ErRPqjANy63mXnL3TfZ3LkEpqmoygyuR8VRXWR/igJdcb+5svHh3a9pumMjOqse0Kn29u5eTcCQEI9vyp3LHSIgcE7aNpzFEWm7sBF6hzqrHMmrXFvMMbVy4G1BlMaaCH3nUxaY5+kFBUn1Bleqq8IhYccm2XSmu2HhyZYyueJxR97fi+t/NQD12SeTsyVnI4jUCw+5gHMnr4OR6hSAACD/cOET2xDUWSWf2aI/V1xa9WrqipdN8wRyO1CgAZxx6r47RuPbD+WTHh+LRw0BeGr4zu01hsELi/1uZNnTMv39HU4AoA90U3TupoVwm02QFllbbb+ANXO9nDJAtqhAAAAAElFTkSuQmCC"};
+const REG_URL = 'https://www.dpird.nsw.gov.au/fishing/recreational/fishing-rules-and-regs/saltwater-bag-and-size-limits';
+const DIOXIN_URL = 'https://www.foodauthority.nsw.gov.au/consumer/special-care-foods/sydney-harbour-seafood';
+const REG_CHECKED = '2026 年 9 月';
+const DEX = [
+  {id:'bream', zh:'黄鳍鲷', en:'Yellowfin Bream', sci:'Acanthopagrus australis', match:['黄鳍鲷','bream'],
+   desc:'码头桩脚边最常见的住户。吃饵小心，先啄后拖，起竿要等它拖走那一下。', where:'桩脚、石堤、牡蛎架边', bait:'虾肉、海虫、鸡肉、面团',
+   legal:'最小 25 cm；每人每天 10 条（与黑鲷、Tarwhine 合计）', warn:'背鳍和臀鳍的硬棘扎手，抓的时候从头往尾捋。',
+   annot:[[14,2.6,'背鳍硬棘，扎手','rt'],[20.5,17.4,'臀鳍、腹鳍带黄','rb'],[8,9,'眼大，吻钝','lt']]},
+  {id:'whiting', zh:'沙尖', en:'Sand Whiting', sci:'Sillago ciliata', match:['沙尖','whiting'],
+   desc:'细长的沙色身体，贴着沙底找虫吃。口小，钩要小，饵要新鲜。', where:'沙底浅滩，涨潮时靠岸', bait:'海虫、泥虾',
+   legal:'最小 27 cm；每人每天 20 条', warn:'',
+   annot:[[3,11.2,'吻尖，口小朝下','lt'],[20,12.4,'体细长，沙色无斑','rb']]},
+  {id:'flathead', zh:'牛尾鱼', en:'Dusky Flathead', sci:'Platycephalus fuscus', match:['牛尾','flathead'],
+   desc:'扁平的大头，趴在沙泥里伏击路过的小鱼。落潮时守在浅滩边缘的斜坡上。', where:'沙泥底，浅滩和深水交界的斜坡', bait:'沙丁鱼、鱼块、活饵',
+   legal:'36–70 cm 之间才可以留，小了大了都要放；每人每天 5 条', warn:'鳃盖两侧有尖刺，别徒手捏头，用毛巾或钳子。',
+   annot:[[5,10,'头宽而扁','lt'],[32,10.4,'尾鳍有黑斑','rt'],[10,13,'鳃盖有尖刺','rb']]},
+  {id:'trevally', zh:'银鲹', en:'Silver Trevally', sci:'Pseudocaranx georgianus', match:['银鲹','trevally'],
+   desc:'成群活动，来了就是一阵连竿。个头不大，拉力却很足。', where:'水深一点的码头前沿、水流交汇处', bait:'虾肉、沙丁鱼、鱿鱼条',
+   legal:'最小 30 cm；每人每天 10 条（鲹类合计）', warn:'',
+   annot:[[12.5,8.6,'鳃盖上一个黑点','lt'],[20,11,'体侧一道黄线','rb'],[30,5,'尾叉很深','rt']]},
+  {id:'tailor', zh:'裁缝鱼', en:'Tailor', sci:'Pomatomus saltatrix', match:['裁缝','tailor'],
+   desc:'一口利齿，咬线像剪刀裁布。黄昏和清晨成群追着小鱼进湾。', where:'黄昏的码头灯光下、湾口', bait:'沙丁鱼、鱼块',
+   legal:'最小 30 cm；每人每天 10 条', warn:'牙齿锋利，摘钩用钳子，手指别靠近嘴。',
+   annot:[[3,12,'口大，牙齿锋利','lt'],[18,7.4,'背青绿，体侧银白','rt']]},
+  {id:'leatherjacket', zh:'皮匠鱼', en:'Fan-bellied Leatherjacket', sci:'Monacanthus chinensis', match:['皮匠','leatherjacket'],
+   desc:'皮像砂纸，背上竖着一根硬棘。小嘴啃饵不动声色，钩上的饵常常就是它偷的。', where:'桩脚、海草和码头浮桥下', bait:'虾肉、鱿鱼条，用小钩',
+   legal:'没有尺寸限制；每人每天 20 条（皮匠鱼类合计）', warn:'背上的硬棘会卡抄网、扎手。',
+   annot:[[11.6,3.6,'背上一根硬棘','lt'],[5,12.4,'嘴小，牙像凿子','lb'],[20,13,'皮像砂纸','rb']]},
+  {id:'yakka', zh:'黄尾鲹', en:'Yellowtail Scad', sci:'Trachurus novaezelandiae', match:['黄尾鲹','yakka','scad'],
+   desc:'码头下成群的小鱼，本地人叫 Yakka。自己不算目标鱼，却是钓大鱼最好的活饵。', where:'码头桩间的中上层，打点窝就围过来', bait:'面团、碎虾肉，极小的钩',
+   legal:'没有尺寸限制；作为饵鱼每人每天 50 条', warn:'',
+   annot:[[10.5,9.6,'鳃盖后一个黑点','lt'],[30.5,8,'尾鳍黄色','rt'],[18,11.6,'侧线一排硬鳞','rb']]},
+  {id:'luderick', zh:'黑毛', en:'Luderick', sci:'Girella tricuspidata', match:['黑毛','luderick','blackfish'],
+   desc:'吃素的鱼，专啃石头和桩上的绿藻。要用浮漂挂海藻钓，沉底的肉饵它基本不理。', where:'长满青苔的石堤和旧桩', bait:'绿藻（海白菜）、面包',
+   legal:'最小 27 cm；每人每天 10 条', warn:'',
+   annot:[[17,8,'体侧十来道细黑纹','rt'],[3.5,11,'嘴小，专吃海藻','lb']]},
+  {id:'mulloway', zh:'鮸鱼', en:'Mulloway (Jewfish)', sci:'Argyrosomus japonicus', match:['鮸','mulloway','jew'],
+   desc:'湾里能碰到的最大的鱼，夜里和潮水转向时进来觅食。上游多是没长成的小鮸，本地人叫 soapie。', where:'深槽、桥墩、夜里有灯光的水面下', bait:'活黄尾鲹、鱿鱼、大块鱼肉',
+   legal:'最小 70 cm；每人每天只能留 1 条', warn:'湾里钓到的绝大多数都不够 70 cm，量一下，不够就放。',
+   annot:[[18,10.4,'侧线上一排珍珠点','rt'],[31.5,11,'尾鳍圆钝不分叉','rb'],[3,12,'口大，口内橙黄','lt']]},
+  {id:'toadfish', zh:'河豚', en:'Smooth Toadfish', sci:'Tetractenos glaber', match:['河豚','toad','puffer'],
+   desc:'沉底钓最常见的“小偷”，什么饵都抢，牙齿能把钩咬断。钓到了小心摘钩放回去，不要留。', where:'到处都是，浅水沙泥底最多', bait:'什么都吃',
+   legal:'不是食用鱼', warn:'有剧毒（河豚毒素），人和宠物都绝对不能吃。别扔在岸上，狗误食会致命。',
+   annot:[[15,8,'背部褐色带深斑','rt'],[14,15.4,'腹部白，受惊会鼓气','rb'],[6,11,'四块板牙，能咬断钩','lt']]}
+];
+DEX.forEach((d,i) => d.no = i + 1);
+const dexOf = species => { const s = String(species||'').toLowerCase(); return s ? DEX.find(d => d.match.some(m => s.includes(m.toLowerCase()))) || null : null; };
+const dexCatches = d => L.catches.filter(c => dexOf(c.species) === d && L.trips.some(t => t.id === c.tripId));
+function dexStats(d){
+  const cs = dexCatches(d); if(!cs.length) return null;
+  const mode = a => { const n = {}; a.filter(Boolean).forEach(v => n[v] = (n[v]||0)+1); const k = Object.keys(n).sort((x,y) => n[y]-n[x])[0]; return k || '—'; };
+  const ls = cs.map(c => numOrNull(c.lengthCm)).filter(v => v != null);
+  return {n:cs.length, max: ls.length ? Math.max(...ls) : null, tide:mode(cs.map(c => c.tideLabel)), bait:shortName(mode(cs.map(c => c.bait)))};
+}
+const pad2 = n => String(n).padStart(2,'0');
+function annotSvg(list){
+  const U = 10, W = 360, H = 232, OY = 6, o = [];
+  list.forEach(([fx,fy,txt,pos]) => {
+    const x = fx*U, y = fy*U + OY, top = pos[1] === 't', yl = top ? 12 : H - 10, w = txt.length*13.5;
+    let xe, tx, anchor;
+    if(pos[0] === 'r'){ anchor = 'end'; tx = W - 6; xe = Math.max(x, tx - w - 6); }
+    else { anchor = 'start'; tx = 6; xe = Math.min(x, tx + w + 6); }
+    o.push(`<polyline points="${x},${y} ${x},${yl} ${xe},${yl}" fill="none" stroke="#4A2A1C" stroke-width="2"></polyline><rect x="${x-3.5}" y="${y-3.5}" width="7" height="7" fill="#F2B632" stroke="#4A2A1C" stroke-width="1.5"></rect><text x="${tx}" y="${yl+4.5}" text-anchor="${anchor}" font-size="13" font-weight="700" fill="#36210F" stroke="#BFE3E8" stroke-width="4" paint-order="stroke">${esc(txt)}</text>`);
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${o.join('')}</svg>`;
+}
+function viewDex(){
+  if(S.dexId){ const d = DEX.find(x => x.id === S.dexId); if(d) return viewDexDetail(d); S.dexId = null; }
+  const got = DEX.filter(d => dexStats(d)).length;
+  return `<div class="note-head"><div><span class="kicker">FISHES OF ROZELLE BAY</span><h2>钓鱼博物志</h2></div>
+      <p class="sub" style="padding-top:22px">已录 <b class="num" style="font-size:1.4rem;color:var(--red)">${got}</b> / ${DEX.length} 种</p></div>
+    <div class="warnbox"><b>先看这条　</b>Rozelle Bay 在海港大桥以西。NSW 政府的建议是：大桥以西钓到的鱼和虾蟹都不要吃，钓获放流。原因是港湾底泥里的二噁英。<a href="${DIOXIN_URL}" target="_blank" rel="noopener">官方说明</a></div>
+    <div class="dexgrid">${DEX.map(d => { const st = dexStats(d);
+      return `<button class="dexcard ${st?'':'locked'}" data-act="open-dex" data-id="${d.id}" aria-label="${st ? esc(d.zh) : '还没钓到：第 ' + d.no + ' 号'}">
+        <span class="no">No.${pad2(d.no)}</span><span class="port"><img class="spr ${st?'':'ghost'}" src="${SPR[d.id]}" alt="" width="36" height="22"></span>
+        <b>${st ? esc(d.zh) : '？？？'}</b><i>${st ? esc(d.en) : ''}</i><small>${st ? `${st.n} 条${st.max != null ? ' · 最大 ' + st.max : ''}` : esc(d.where)}</small></button>`; }).join('')}</div>
+    <p class="hint" style="margin-top:18px">这十种是按上港湾常见鱼种选的，不是 Rozelle Bay 的专门调查。没钓到的鱼点开也能看资料。钓到图鉴里没有的鱼，记鱼时照常输入名字就行。</p>`;
+}
+function viewDexDetail(d){
+  const st = dexStats(d);
+  return `<div class="row"><button class="btn quiet small" data-act="dex-back">返回</button></div>
+    <section class="plate"><span class="pno">PLATE ${pad2(d.no)}</span>
+      <div class="fig"><img class="spr ${S.dexFlash === d.id ? 'flash' : ''}" src="${SPR[d.id]}" alt="${esc(d.zh)}的像素图" width="36" height="22">${annotSvg(d.annot)}</div>
+      <div class="names"><div><b>${esc(d.zh)}</b><i>${esc(d.sci)} · ${esc(d.en)}</i></div><span class="badge ${st?'on':''}">${st ? '录' : '未'}</span></div>
+      <p>${esc(d.desc)}</p>
+      <dl><dt>常在</dt><dd>${esc(d.where)}</dd><dt>爱吃</dt><dd>${esc(d.bait)}</dd><dt>法规</dt><dd>${esc(d.legal)}</dd></dl>
+      ${d.warn ? `<div class="warnbox" style="margin:4px"><b>小心　</b>${esc(d.warn)}</div>` : ''}
+      ${st ? `<div class="facts"><span><small>我钓到</small>${st.n} 条</span><span><small>最大</small>${st.max != null ? st.max + ' cm' : '—'}</span><span><small>最旺</small>${esc(st.tide)}</span><span><small>最灵</small>${esc(st.bait)}</span></div>`
+           : `<div class="facts" style="grid-template-columns:1fr"><span><small>还没有战绩</small>钓到第一条，这里就会出现你的记录</span></div>`}
+    </section>
+    <p class="hint" style="margin-top:14px">法规一栏核对于 ${REG_CHECKED}，来源是 NSW DPIRD。规定会改，留鱼之前以<a href="${REG_URL}" target="_blank" rel="noopener" style="color:var(--wood);font-weight:700">官网</a>为准。另外别忘了：大桥以西的鱼官方建议不要吃。</p>`;
+}
+
+/* ---------- 像素潮汐圆盘（画在 91×91 的格子上，再放大三倍） ---------- */
+function drawDial(cv, o){
+  const N = 91, c = N/2, R_in = 36.6, R_out = 39.6; let ctx = null; try{ ctx = cv.getContext('2d'); }catch(e){} if(!ctx) return; cv.width = N; cv.height = N;
+  const FACE='#FFFAE8', WATER='#BFE3E8', WATER2='#A6D5DC', WL='#2F7F8C', FOAM='#EAF7F8', RED='#D9542B', GOLD='#F2B632', SHADE='#7A4A2A', EDGE='#4A2A1C', LINE='#DDBF84';
+  const g = Array.from({length:N}, () => Array(N).fill(null));
+  const frac = o.level == null ? null : Math.min(.96, Math.max(.06, o.level));
+  const level = frac == null ? N : (c+R_in) - frac*2*R_in, y0 = Math.floor(level), deep = Math.max(c + R_in*.55, y0 + 10);
+  const inArc = ang => { if(!o.arc) return false; let a0 = o.arc[0]*360, a1 = o.arc[1]*360; if(o.arc[1] - o.arc[0] >= 1) return true; a0 %= 360; a1 %= 360; return a0 <= a1 ? (ang >= a0 && ang <= a1) : (ang >= a0 || ang <= a1); };
+  for(let j = 0; j < N; j++) for(let i = 0; i < N; i++){
+    const x = i+.5, y = j+.5, d = Math.hypot(x-c, y-c);
+    if(d <= R_in){ const surf = y0 + ((Math.floor(i/4) % 2) ? 1 : 0);
+      g[j][i] = frac == null || j < surf ? FACE : j === surf ? WL : j === surf+1 ? FOAM : y > deep+1 ? WATER2 : y > deep-1 ? ((i+j)%2 ? WATER : WATER2) : WATER; }
+    else if(d <= R_in+1.2) g[j][i] = SHADE;
+    else if(d <= R_out){ const ang = (Math.atan2(x-c, -(y-c))*180/Math.PI + 360) % 360; g[j][i] = inArc(ang) ? GOLD : EDGE; }
+  }
+  if(frac != null) [[-24,9],[22,13],[-27,20],[25,24],[-20,29],[18,31]].forEach(([dx,dy]) => { for(let k = 0; k < 3; k++){ const i = Math.floor(c+dx)+k, j = y0+dy; if(g[j] && (g[j][i] === WATER || g[j][i] === WATER2)) g[j][i] = FOAM; } });
+  const put = (i,j,col) => { if(i >= 0 && i < N && j >= 0 && j < N) g[j][i] = col; };
+  const ray = (a,r0,r1,col,thick) => { const ar = a*Math.PI/180, px = Math.round(Math.cos(ar)), py = Math.round(Math.sin(ar));
+    for(let r = r0; r <= r1; r += .35){ const i = Math.floor(c + r*Math.sin(ar)), j = Math.floor(c - r*Math.cos(ar)); put(i,j,col); if(thick) put(i+px, j+py, col); } };
+  for(let k = 0; k < 24; k++){ if(k%6 === 0) ray(k*15, R_in-6.5, R_in-.4, EDGE, true); else if(k%2 === 0) ray(k*15, R_in-4, R_in-.4, EDGE); else ray(k*15, R_in-2.4, R_in-.4, SHADE); }
+  if(o.moonAge != null){   // 月相。南半球看，上弦月亮的是左半边，所以把左右反过来
+    const mx = c-19, my = c-21, th = 2*Math.PI*o.moonAge/29.530588853, k = Math.cos(th), waxing = th < Math.PI;
+    for(let j = 0; j < N; j++) for(let i = 0; i < N; i++){ const dx = (i+.5-mx)/3.6, dy = (j+.5-my)/3.6, d = Math.hypot(dx,dy);
+      if(d <= 4.6/3.6){ if(d > 1) g[j][i] = EDGE; else { const xs = -dx, lim = Math.sqrt(Math.max(0,1-dy*dy)); const lit = waxing ? xs > k*lim : xs < -k*lim; g[j][i] = lit ? '#F7DE7E' : '#A8916A'; } } }
+  }
+  if(o.now != null){ const a = o.now*360; ray(a, 0, 31, EDGE, true); const ar = a*Math.PI/180, ti = Math.floor(c+32*Math.sin(ar)), tj = Math.floor(c-32*Math.cos(ar));
+    [[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1],[2,0],[0,2],[-2,0],[0,-2]].forEach(([di,dj]) => put(ti+di, tj+dj, EDGE)); }
+  for(let dj = -2; dj <= 2; dj++) for(let di = -2; di <= 2; di++) if(Math.abs(di)+Math.abs(dj) < 4) put(Math.floor(c)+di, Math.floor(c)+dj, EDGE);
+  put(Math.floor(c), Math.floor(c), GOLD);
+  const seen = {};
+  (o.dots||[]).forEach(p => { const key = Math.round(p*60); const n = seen[key] = (seen[key]||0) + 1; if(n > 1) return;   // 同一格只画一个
+    const ar = p*2*Math.PI, ci = Math.floor(c+43*Math.sin(ar)), cj = Math.floor(c-43*Math.cos(ar));
+    for(let dj = -2; dj <= 2; dj++) for(let di = -2; di <= 2; di++){ if(Math.abs(di) === 2 && Math.abs(dj) === 2) continue; put(ci+di, cj+dj, Math.max(Math.abs(di),Math.abs(dj)) === 2 ? EDGE : RED); } });
+  ctx.clearRect(0,0,N,N);
+  for(let j = 0; j < N; j++) for(let i = 0; i < N; i++) if(g[j][i]){ ctx.fillStyle = g[j][i]; ctx.fillRect(i,j,1,1); }
+}
+let DIALS = {};
+function dialHtml(id, o, center, corners){
+  DIALS[id] = o;
+  return `<section class="dialcard" aria-label="潮汐圆盘"><div class="dial-wrap"><canvas data-dial="${id}" width="91" height="91" role="img" aria-label="像素潮汐圆盘：顶上满潮，底下低潮，顺时针走，指针是现在，红方块是渔获"></canvas>
+    <div class="dial-center">${center}</div></div>${corners}</section>`;
+}
+function paintDials(){ document.querySelectorAll('canvas[data-dial]').forEach(cv => { const o = DIALS[cv.dataset.dial]; if(o) drawDial(cv, o); }); }
+
+function westOfBridge(sp){ return hasLoc(sp) && sp.lng < 151.2107 && sp.lng > 150.95 && sp.lat < -33.78 && sp.lat > -33.92; }
+function fmtDate(d){ const x = new Date(d + 'T12:00:00'); return isNaN(x) ? esc(d) : `${x.getMonth()+1} 月 ${x.getDate()} 日 · 周${'日一二三四五六'[x.getDay()]}`; }
+function tripNo(t){ const all = [...L.trips].sort((a,b) => (a.date+(a.startTime||'')).localeCompare(b.date+(b.startTime||'')) || (a.createdAt||0)-(b.createdAt||0)); return all.findIndex(x => x.id === t.id) + 1; }
+
 function renderChrome(){
-  $('#tabs').innerHTML = [['today','今天'],['history','记录'],['spots','钓点'],['stats','统计']]
+  $('#tabs').innerHTML = [['today','今天'],['history','记录'],['spots','钓点'],['dex','博物志'],['stats','统计']]
     .map(([k,l]) => `<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${l}</button>`).join('');
-  const el = $('#sync'); if(el) el.textContent = L.lastBackup ? '上次备份 ' + L.lastBackup : (L.trips.length ? '还没备份过' : '');
+  const el = $('#sync'); if(el) el.textContent = L.lastBackup ? '上次备份 ' + L.lastBackup.slice(5) : (L.trips.length ? '还没备份过' : '');
 }
 function render(){
-  const body = S.tab === 'today' ? viewToday() : S.tab === 'history' ? (S.tripId ? viewTrip(S.tripId) : viewHistory()) : S.tab === 'spots' ? viewSpots() : viewStats();
+  DIALS = {};
+  const body = S.tab === 'today' ? viewToday() : S.tab === 'history' ? (S.tripId ? viewTrip(S.tripId) : viewHistory()) : S.tab === 'spots' ? viewSpots() : S.tab === 'dex' ? viewDex() : viewStats();
   $('#app').innerHTML = `<header class="mast"><h1>码头钓记</h1><span class="sync" id="sync"></span></header>${body}`;
-  renderChrome();
+  renderChrome(); paintDials(); S.dexFlash = null;
 }
 
 /* ---------- 今天 ---------- */
 function viewToday(){
   const t = activeTrip();
   if(t) return tripBody(t, true);
-  const last = tripsSorted()[0];
-  return `<h2>今天去哪个码头？</h2>
-    <p class="sub">下竿前先开始一次出钓，填上钓点和满潮时间，之后每条鱼点几下就记完。</p>
-    <div class="tide">${tideSvg([], null)}<p class="tide-note">每条鱼会按时间自动标到这条潮位线上。</p></div>
+  const last = tripsSorted()[0], mi = moonInfo(todayStr());
+  return `<div class="note-head"><div><span class="kicker">FIELD NOTE No.${L.trips.length + 1}</span><h2>${fmtDate(todayStr())}</h2><p class="sub">今天去哪个码头？</p></div></div>
+    ${dialHtml('idle', {level:null, now:null, arc:null, dots:[], moonAge:mi.moonAge}, `<span class="k">今天</span><span class="v txt-only">${esc(mi.tideType)}</span><span class="s">${esc(mi.moonLabel)}</span>`, '')}
+    <p class="tide-note">下竿前先开始一次出钓，填上钓点和满潮、低潮，之后每条鱼点几下就记完，圆盘会跟着潮水走。</p>
     <div class="stack"><button class="btn primary" data-act="new-trip">开始出钓</button></div>
     ${last ? `<h3>上一次</h3><ul class="log trips">${tripRow(last)}</ul>` : ''}`;
 }
 function elapsed(t){
   const s = new Date(`${t.date}T${t.startTime||'00:00'}:00`).getTime(); let m = Math.max(0, Math.round((Date.now()-s)/60000));
-  if(m > 36*60) return null; return `${Math.floor(m/60)} 小时 ${m%60} 分`;
+  if(m > 36*60) return null; return `${Math.floor(m/60)} 小时 ${pad2(m%60)} 分`;
 }
 function tripBody(t, live){
-  const cs = catchesOf(t.id), dots = cs.map(c => c.tideP).filter(p => p != null);
-  const nowP = live ? phaseAt(t, nowHM()) : null, hasTide = t.highTide || t.lowTide;
-  const el = live ? elapsed(t) : null;
-  const filled = ENV.filter(f => t[f.k] != null && t[f.k] !== ''), missing = ENV.length - filled.length;
-  const head = live
-    ? `<h2>${esc(t.spot)}</h2><p class="sub">${esc(t.date)}　<span class="num">${esc(t.startTime||'')}</span> 开始${el?`，已钓 <span class="num">${el}</span>`:''}</p>`
-    : `<div class="row"><button class="btn quiet small" data-act="back">返回</button></div><h2 style="margin-top:12px">${esc(t.spot)}</h2>
-       <p class="sub">${esc(t.date)}　<span class="num">${esc(t.startTime||'')}${t.endTime?' – '+esc(t.endTime):''}</span>${t.endTime?'':'　还没收竿'}</p>`;
+  const cs = catchesOf(t.id), dots = cs.map(c => c.tideP).filter(p => p != null), sp = spotOf(t.spot);
+  const nowP = live ? phaseAt(t, nowHM()) : null, hasTide = !!(t.highTide || t.lowTide), el = live ? elapsed(t) : null;
+  const hi = numOrNull(t.highTideM), lo = numOrNull(t.lowTideM), hNow = live ? tideHeightAt(t, nowHM()) : null;
+  const p0 = phaseAt(t, t.startTime), p1 = live ? nowP : phaseAt(t, t.endTime);
+  let arc = null; if(p0 != null && p1 != null){ let a = p0, b = p1; if(b < a) b += 1; arc = [a, b]; }
+  const level = hNow != null && hi != null && lo != null && hi > lo ? (hNow - lo)/(hi - lo) : (nowP != null ? (1 + Math.cos(2*Math.PI*nowP))/2 : (hasTide ? .5 : null));
+  const center = !hasTide ? `<span class="k">潮汐</span><span class="v txt-only">还没填</span><span class="s">点下面“环境”补上</span>`
+    : live ? (hNow != null ? `<span class="k">潮高</span><span class="v">${hNow.toFixed(1)}<small> m</small></span><span class="s">${tideLabel(nowP)} · ${esc(t.tideType||'')}</span>`
+                           : `<span class="k">现在</span><span class="v txt-only">${tideLabel(nowP)}</span><span class="s">${esc(t.tideType||'')}</span>`)
+           : `<span class="k">这次出钓</span><span class="v">${cs.length}<small> 条</small></span><span class="s">${esc(t.moonLabel||'')} · ${esc(t.tideType||'')}</span>`;
+  const tm = (label, hm, m) => hm ? `<b>${label}</b><span class="t">${esc(hm)}</span>${m != null ? `<small>${m} m</small>` : ''}` : `<b>${label}</b>`;
+  const corners = `<div class="corner tl">${tm('满潮', t.highTide, hi)}</div><div class="corner tr"><b>落</b><small>顺时针</small></div><div class="corner bl"><b>涨</b></div><div class="corner br">${tm('低潮', t.lowTide, lo)}</div>`;
+  const wind = [t.windDir, t.windForce ? t.windForce.replace('风','') : ''].filter(Boolean).join(' ');
+  const filled = ENV.filter(f => t[f.k] != null && t[f.k] !== '').length;
+  const head = `<div class="note-head"><div><span class="kicker">FIELD NOTE No.${tripNo(t)}</span><h2>${fmtDate(t.date)}</h2>
+      <p class="where">${esc(t.spot)}${hasLoc(sp) ? `<small>${Math.abs(sp.lat).toFixed(3)}${sp.lat<0?'S':'N'} ${Math.abs(sp.lng).toFixed(3)}${sp.lng<0?'W':'E'}</small>` : ''}</p>
+      <p class="sub"><span class="num">${esc(t.startTime||'')}</span>${t.endTime ? ' – <span class="num">' + esc(t.endTime) + '</span>' : ' 开始'}${el ? `，已钓 <span class="num">${el}</span>` : ''}</p></div>
+      ${live ? `<button class="btn small" data-act="end-trip" data-trip="${t.id}">收竿</button>` : `<button class="btn quiet small" data-act="back">返回</button>`}</div>`;
   return `${head}
-    <div class="tide">${tideSvg(dots, nowP)}
-      <p class="tide-note">${hasTide ? `${esc(t.moonLabel||'')}，${esc(t.tideType||'')}${nowP!=null?`。现在是${tideLabel(nowP)}`:''}` : '还没填满潮或低潮时间。填上以后，每条鱼会自动算出潮段。'}</p>${depthNote(t, live)}</div>
+    <button class="cond" data-act="edit-trip" data-trip="${t.id}" aria-label="环境，点一下补填或修改"><span><small>天气</small>${esc(t.weather||'—')}</span><span><small>风</small>${esc(wind||'—')}</span><span><small>水色</small>${esc(t.clarity||'—')}</span><span><small>月相</small>${esc((t.moonLabel||'—').replace('月',''))}</span></button>
+    ${filled < ENV.length ? `<p class="tide-note" style="margin-top:6px">环境填了 ${filled} / ${ENV.length} 项，点上面这一行补填，回家再补也行。</p>` : ''}
+    ${dialHtml('trip', {level, now: nowP, arc, dots, moonAge: t.moonAge}, center, corners)}
+    ${depthWells(t, live)}
+    ${westOfBridge(sp) ? `<div class="warnbox"><b>大桥以西　</b>官方建议这一带钓到的鱼和虾蟹不要吃，钓获放流。<a href="${DIOXIN_URL}" target="_blank" rel="noopener">为什么</a></div>` : ''}
     ${live ? `<div class="stack"><button class="btn primary" data-act="new-catch" data-trip="${t.id}">记一条鱼</button></div>` : ''}
-    <h3>渔获　<span class="num">${cs.length}</span></h3>
-    ${cs.length ? `<ul class="log">${cs.map(catchRow).join('')}</ul>` : `<p class="empty">${t.endTime ? '这次空军。空军也是数据，环境记全了一样有用。' : '还没上鱼。'}</p>`}
-    <h3>环境</h3>
-    ${live ? `<div class="tags">${filled.map(f => `<span class="tag">${f.label} ${esc(t[f.k])}${f.unit||''}</span>`).join('')}${missing?`<span class="tag todo">还有 ${missing} 项没填，可以回家补</span>`:''}</div>` : envList(t)}
+    <h3>渔获　${cs.length}</h3>
+    ${cs.length ? `<ul class="ents">${cs.map(entRow).join('')}</ul>` : `<p class="empty">${t.endTime ? '这次空军。空军也是数据，环境记全了一样有用。' : '还没上鱼。'}</p>`}
+    ${!live ? `<h3>环境</h3>${envList(t)}` : ''}
     ${t.note ? `<p class="hint">备注：${esc(t.note)}</p>` : ''}
-    <div class="stack">
-      <div class="row">
-        <button class="btn" data-act="edit-trip" data-trip="${t.id}">${live?'补填环境':'编辑这次出钓'}</button>
-        ${!live ? `<button class="btn" data-act="new-catch" data-trip="${t.id}">补记一条鱼</button>` : ''}
-        ${!t.endTime ? `<button class="btn solid" data-act="end-trip" data-trip="${t.id}">收竿</button>` : ''}
-      </div>
-      ${!live ? `<div class="row"><button class="btn danger small" data-act="del-trip" data-trip="${t.id}">删除这次出钓</button></div>` : ''}
-    </div>`;
+    <div class="stack"><div class="row">
+      ${!live ? `<button class="btn" data-act="edit-trip" data-trip="${t.id}">编辑这次出钓</button><button class="btn" data-act="new-catch" data-trip="${t.id}">补记一条鱼</button>` : ''}
+      ${!live && !t.endTime ? `<button class="btn solid" data-act="end-trip" data-trip="${t.id}">收竿</button>` : ''}
+      ${hasLoc(sp) ? `<a class="btn small" href="${chartUrl(sp)}" target="_blank" rel="noopener">看海图水深</a>` : ''}</div>
+      ${!live ? `<div class="row"><button class="btn danger small" data-act="del-trip" data-trip="${t.id}">删除这次出钓</button></div>` : ''}</div>`;
 }
-function depthNote(t, live){ const sp = spotOf(t.spot); return depthNoteBody(t, live) + (hasLoc(sp) ? `<p class="tide-note"><a href="${chartUrl(sp)}" target="_blank" rel="noopener" style="color:var(--harbour);font-weight:600">看这个钓点的海图水深</a></p>` : ''); }
-function depthNoteBody(t, live){
+function depthWells(t, live){
   const sp = spotOf(t.spot), has = sp && ZONES.some(z => numOrNull(sp[z[1]]) != null);
   if(!has) return `<p class="tide-note"><button class="btn quiet small" data-act="edit-spot" data-spot="${esc(t.spot)}">填这个钓点的水深</button></p>`;
-  const h = live ? tideHeightAt(t, nowHM()) : null;
   if(numOrNull(t.highTideM) == null || numOrNull(t.lowTideM) == null) return `<p class="tide-note">这个钓点有水深了，再补上满潮和低潮的潮高，就能算每条鱼上钩时的实际水深。</p>`;
-  if(h == null) return '';
-  const parts = ZONES.filter(z => numOrNull(sp[z[1]]) != null).map(z => `${z[0]} <span class="num">${r1(numOrNull(sp[z[1]])+h).toFixed(1)}</span>`);
-  return `<p class="tide-note">现在潮高 <span class="num">${h.toFixed(1)}</span> m，水深：${parts.join('，')} m</p>`;
+  const h = live ? tideHeightAt(t, nowHM()) : null; if(h == null) return '';
+  return `<div class="wells">${ZONES.filter(z => numOrNull(sp[z[1]]) != null).map(z => `<div class="well"><small>${z[0]}</small><b>${r1(numOrNull(sp[z[1]])+h).toFixed(1)}<i> m</i></b></div>`).join('')}</div>`;
 }
+function entRow(c){
+  const d = dexOf(c.species), meta = [shortName(c.bait), c.cast ? c.cast + (c.cast === '桩脚边' ? '' : '抛') : '', c.tideLabel, c.depthM != null ? `水深 ${c.depthM} m` : '', c.weightG ? c.weightG + ' g' : ''].filter(Boolean).join('，');
+  const b = c.outcome === '留' ? '<span class="badge on">留</span>' : c.outcome === '放' ? '<span class="badge">放</span>' : c.outcome ? '<span class="badge lost">跑</span>' : '';
+  return `<li><button class="ent" data-act="edit-catch" data-id="${c.id}"><span class="t">${esc(c.time||'')}</span><span class="rail"></span>
+    <span class="body">${d ? `<img class="spr" src="${SPR[d.id]}" alt="" width="36" height="22">` : '<span class="nospr"></span>'}
+      <span><span class="nm">${esc(shortName(c.species))}${c.lengthCm != null ? `　<b>${c.lengthCm}</b><small> cm</small>` : ''}</span><span class="meta">${esc(meta)}${c.note ? '。' + esc(c.note) : ''}</span></span></span>${b}</button></li>`;
+}
+function aquaHtml(species){
+  const d = dexOf(species); if(!d) return '';
+  const st = dexStats(d);
+  return `<div class="aqua"><span class="port"><img class="spr" src="${SPR[d.id]}" alt="" width="36" height="22"></span><span><b>${esc(d.zh)}</b><small>${esc(d.en)}</small><small>博物志 No.${pad2(d.no)}${st ? `，已钓 ${st.n} 条` : '，还没录过，这条就是第一条'}</small></span></div>`;
+}
+
 function envList(t){
   const tm = (hm, m) => hm ? hm + (m != null && m !== '' ? `，${m} m` : '') : null;
   const rows = [['满潮', tm(t.highTide, t.highTideM)],['低潮', tm(t.lowTide, t.lowTideM)],['月相', t.moonLabel],['潮型', t.tideType], ...ENV.map(f => [f.label, t[f.k] != null && t[f.k] !== '' ? t[f.k] + (f.unit||'') : null])];
   return `<dl class="env">${rows.map(([k,v]) => `<div><dt>${k}</dt><dd>${v ? esc(v) : '—'}</dd></div>`).join('')}</dl>`;
-}
-function catchRow(c){
-  const meta = [shortName(c.bait), c.tideLabel, c.depthM != null ? `水深 ${c.depthM} m` : (c.cast||''), c.outcome, c.weightG ? c.weightG+' g' : ''].filter(Boolean).join('，');
-  return `<li><button data-act="edit-catch" data-id="${c.id}"><span class="t num">${esc(c.time||'')}</span>
-    <span class="main">${esc(shortName(c.species))}<span class="meta">${esc(meta)}</span></span>
-    <span class="len num">${c.lengthCm != null ? c.lengthCm + '<small> cm</small>' : ''}</span></button></li>`;
 }
 function tripRow(t){
   const n = L.catches.filter(c => c.tripId === t.id).length;
@@ -610,7 +820,7 @@ function renderSheet(){
   } else {
     const trip = L.trips.find(t => t.id === f.tripId);
     title = s.isNew ? '记一条鱼' : '修改这条鱼';
-    body = chipField({k:'species',label:'鱼种',custom:'其他鱼种'}, f.species, ranked('species', L.catches.map(c => c.species)))
+    body = `<div id="aqua">${aquaHtml(f.species)}</div>` + chipField({k:'species',label:'鱼种',custom:'其他鱼种'}, f.species, ranked('species', L.catches.map(c => c.species)))
       + `<div class="pair">${inputField({k:'lengthCm',label:'长度',unit:'cm',num:true,big:true}, f.lengthCm)}${inputField({k:'time',label:'时间',type:'time',big:true}, f.time)}</div>`
       + chipField({k:'bait',label:'饵',custom:'其他饵'}, f.bait, ranked('bait', L.catches.map(c => c.bait)))
       + chipField({k:'cast',label:'抛投',hint:'决定按哪个位置的水深来算',opts:ZONES.map(z => z[0])}, f.cast)
@@ -687,7 +897,9 @@ async function saveSheet(){
     { const trip = L.trips.find(t => t.id === f.tripId), th = tideHeightAt(trip, f.time); f.tideM = th == null ? null : Math.round(th*100)/100;
       f.depthM = f.depthManual ? numOrNull(f.depthM) : depthAt(trip, f.time, f.cast); if(f.depthM == null) f.depthManual = false; }
     if(f.tideManual && f.tideLabel) f.tideP = BIN_CENTER[f.tideLabel]; if(!f.tideLabel){ f.tideP = null; }
-    closeSheetQuiet(); await writeDoc('catches', f); toast('已保存这条鱼');
+    const dx = dexOf(f.species), firstOne = dx && !dexCatches(dx).some(c => c.id !== f.id);
+    closeSheetQuiet(); await writeDoc('catches', f);
+    if(firstOne){ S.dexFlash = dx.id; toast(`新鱼种！博物志 No.${pad2(dx.no)} ${dx.zh} 点亮了`); } else toast('已保存这条鱼');
   }
 }
 function closeSheetQuiet(){ S.sheet = null; saveUi(); $('#sheet-root').innerHTML = ''; showMain(true); try{ window.scrollTo(0,0); }catch(e){} }
@@ -783,12 +995,15 @@ document.addEventListener('click', async e => {
     const ci = wrap.querySelector('[data-custom]'); if(ci) ci.value = '';
     if(k === 'tideLabel'){ S.sheet.data.tideManual = !on; if(on) refreshAutoTide(); }
     if(k === 'cast') refreshAutoDepth();
+    if(k === 'species'){ const q = document.getElementById('aqua'); if(q) q.innerHTML = aquaHtml(S.sheet.data.species); }
     return;
   }
   const b = e.target.closest('[data-act]'); if(!b) return;
   const act = b.dataset.act;
-  if(act === 'tab'){ S.tab = b.dataset.tab; S.tripId = null; render(); saveUi(); try{ window.scrollTo(0,0); }catch(e){} }
+  if(act === 'tab'){ S.tab = b.dataset.tab; S.tripId = null; S.dexId = null; render(); saveUi(); try{ window.scrollTo(0,0); }catch(e){} }
   else if(act === 'new-trip') newTripForm();
+  else if(act === 'open-dex'){ S.dexId = b.dataset.id; render(); try{ window.scrollTo(0,0); }catch(e){} }
+  else if(act === 'dex-back'){ S.dexId = null; render(); }
   else if(act === 'edit-trip'){ const t = L.trips.find(x => x.id === b.dataset.trip); openSheet({type:'trip', isNew:false, data:clean(t)}); }
   else if(act === 'end-trip'){ const t = L.trips.find(x => x.id === b.dataset.trip); if(!confirmTap(b, '再点一次确认收竿')) return;
     await writeDoc('trips', {...clean(t), endTime: t.date === todayStr() || elapsed(t) ? nowHM() : (t.startTime||nowHM())}); toast('已收竿。环境没填全的话，回家在“记录”里补。'); }
@@ -827,7 +1042,8 @@ document.addEventListener('input', e => {
       if(src) src.textContent = v != null ? '这一天有填了潮汐的出钓记录，潮高已经按时间自动算好，可以改。' : '这一天没有带潮汐的出钓记录，潮高要自己查潮汐表填。海图上读的固定水深填 0。'; }
     if(el.dataset.input === 'depthM' && S.sheet.type === 'catch') S.sheet.data.depthManual = el.value !== ''; }
   else if('custom' in el.dataset){ const wrap = el.closest('[data-field]'); S.sheet.data[wrap.dataset.field] = el.value.trim() || null;
-    wrap.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed','false')); }
+    wrap.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed','false'));
+    if(wrap.dataset.field === 'species'){ const q = document.getElementById('aqua'); if(q) q.innerHTML = aquaHtml(S.sheet.data.species); } }
 });
 setInterval(() => { if(!S.sheet && S.tab === 'today' && activeTrip() && !armed) render(); }, 60000);
 
